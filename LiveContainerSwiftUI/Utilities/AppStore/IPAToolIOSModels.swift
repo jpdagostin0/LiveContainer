@@ -77,6 +77,7 @@ enum IPAToolIOSError: LocalizedError, Equatable {
     case appNotFound
     case noSignature
     case downloadFailed(String)
+    case serverMessage(String)
     case keychain(Int32)
 
     var errorDescription: String? {
@@ -110,6 +111,8 @@ enum IPAToolIOSError: LocalizedError, Equatable {
             return "The App Store response did not contain a FairPlay SINF."
         case let .downloadFailed(message):
             return "The IPA download failed: \(message)"
+        case let .serverMessage(message):
+            return message
         case let .keychain(status):
             return "Keychain operation failed with status \(status)."
         }

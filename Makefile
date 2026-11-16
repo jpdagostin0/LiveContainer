@@ -182,19 +182,22 @@ UI_SRCS   := $(shell find LiveContainerSwiftUI -name '*.m' -o -name '*.c') $(add
 UI_BRIDGE := LiveContainerSwiftUI/LiveContainerSwiftUI-Bridging-Header.h
 UI_DEFS   := -DCONFIG_TYPE=\"$(CONFIGURATION)\" -DCONFIG_BRANCH=\"$(GIT_BRANCH)\" -DCONFIG_COMMIT=\"$(GIT_COMMIT)\"
 UI_CFLAGS := $(UI_DEFS)
-UI_SWIFTFLAGS := -swift-version 5 -import-objc-header $(UI_BRIDGE) $(addprefix -Xcc ,$(UI_DEFS))
+UI_SWIFTFLAGS := -swift-version 5 -import-objc-header $(UI_BRIDGE) $(addprefix -Xcc ,$(UI_DEFS)) \
+                 -I $(OBJ)/SAP/swift -I $(OBJ)/MAK/swift -I $(OBJ)/ASC/swift -F AppStoreAuth \
+                 -I AppStoreAuth/NativeStore/include -Xcc -IAppStoreAuth/NativeStore/include
 UI_SWIFT_EXTRA_DEPS := $(UI_BRIDGE)
 $(eval $(call swiftmodule,UI))
 UI_DEPS   := $(UI_SWIFT_HDR)
 $(eval $(call objects,UI))
 UI_FW := $(PRODUCTS)/LiveContainerSwiftUI.framework
 
-$(UI_FW)/LiveContainerSwiftUI: $(UI_SWIFT_OBJ) $(UI_OBJS) $(SHARED_FW)/LiveContainerShared
+$(UI_FW)/LiveContainerSwiftUI: $(UI_SWIFT_OBJ) $(UI_OBJS) $(SHARED_FW)/LiveContainerShared $(ASA_LINK_OBJS)
 	@mkdir -p $(@D); echo "  LINK  LiveContainerSwiftUI.framework"
-	@$(SWIFTC) -target $(call triple,$(UI_MIN)) $(SWIFT_LDFLAGS) -emit-library $(UI_SWIFT_OBJ) $(UI_OBJS) -o $@ \
+	@$(SWIFTC) -target $(call triple,$(UI_MIN)) $(SWIFT_LDFLAGS) -emit-library $(UI_SWIFT_OBJ) $(UI_OBJS) $(ASA_LINK_OBJS) -o $@ \
 	    -Xlinker -install_name -Xlinker @rpath/LiveContainerSwiftUI.framework/LiveContainerSwiftUI \
 	    -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -rpath -Xlinker @loader_path/Frameworks \
 	    -F $(PRODUCTS) -framework LiveContainerShared -framework IOKit -larchive -lz \
+	    -F AppStoreAuth -framework MacADICore -framework Security -lc++ -lresolv -lcompression -lbz2 \
 	    -Xlinker -U -Xlinker '_OBJC_CLASS_$$_RBSTarget' $(LD_FILTER)
 $(UI_FW)/Info.plist:
 	@$(LCBUILD) plist -o $@ $(call fw_plist,LiveContainerSwiftUI,com.kdtLiveContainerSwiftUI,FMWK,1.0,1,$(UI_MIN))
@@ -288,9 +291,23 @@ MAK_SWIFT  := $(wildcard $(ASA_DIR)/MacAnisetteKit/*.swift)
 MAK_SWIFTFLAGS := -swift-version 5 $(ASA_F) $(ASA_NS_INC) -Xcc $(ASA_NS_INC)
 $(eval $(call swiftmodule,MAK))
 
+ASC_MIN    := 15.0
+ASC_MODULE := AppStoreCore
+ASC_SWIFT  := $(wildcard $(ASA_DIR)/AppStoreCore/*.swift)
+ASC_SWIFTFLAGS := -swift-version 5 $(ASA_F) $(ASA_NS_INC) -Xcc $(ASA_NS_INC) \
+                  -I $(OBJ)/SAP/swift -I $(OBJ)/MAK/swift
+ASC_SWIFT_EXTRA_DEPS := $(SAP_SWIFT_OBJ) $(MAK_SWIFT_OBJ)
+$(eval $(call swiftmodule,ASC))
+
 .PHONY: appstoreauth
-appstoreauth: $(NS_OBJS) $(SAP_SWIFT_OBJ) $(MAK_SWIFT_OBJ)
-	@echo "  APPSTOREAUTH modules compiled (NativeStore, SAPKit, MacAnisetteKit)"
+appstoreauth: $(NS_OBJS) $(SAP_SWIFT_OBJ) $(MAK_SWIFT_OBJ) $(ASC_SWIFT_OBJ)
+	@echo "  APPSTOREAUTH modules compiled (NativeStore, SAPKit, MacAnisetteKit, AppStoreCore)"
+
+# Link the AppStore auth modules + MacADICore into LiveContainerSwiftUI.framework,
+# and make its Swift compile (which imports them) wait for the modules.
+ASA_LINK_OBJS := $(NS_OBJS) $(SAP_SWIFT_OBJ) $(MAK_SWIFT_OBJ) $(ASC_SWIFT_OBJ)
+$(UI_FW)/LiveContainerSwiftUI: $(ASA_LINK_OBJS)
+$(UI_SWIFT_OBJ): $(SAP_SWIFT_OBJ) $(MAK_SWIFT_OBJ) $(ASC_SWIFT_OBJ)
 
 # ---------------------------------------------------------------------------
 # App extensions
