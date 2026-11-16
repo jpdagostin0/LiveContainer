@@ -39,6 +39,11 @@ defaults:
     - ZSign/common
     - litehook/src
     - litehook/external/include
+  # idl lint / idl fmt: vendored and generated code is not ours to restyle.
+  lint:
+    exclude: [ZSign, litehook, LiveContainer/Tweaks/mach_excServer.c]
+  format:
+    exclude: [ZSign, litehook, AppStoreAuth, LiveContainer/Tweaks/mach_excServer.c]
   plist_vars:
     DEVELOPMENT_TEAM: AAAAA11111
     AppIdentifierPrefix: "AAAAA11111."
@@ -65,6 +70,7 @@ targets:
       UILaunchImages: ~
     entitlements: entitlements.xml
     resources:
+      - Resources/Assets.xcassets
       - Resources/Settings.bundle
       - Resources/universal.js
       - Resources/DefaultIcon.png
@@ -85,8 +91,13 @@ targets:
       - LiveProcess
       - ShareExtension
       - LaunchAppExtension
-    # Embed the built-in SideStore -> build/LiveContainer+SideStore.ipa
-    post_build: [bash, build-support/embed-sidestore.sh]
+    # 1. embed the built-in SideStore -> build/LiveContainer+SideStore.ipa
+    # 2. install_on_device: install it through Jimpactor if a device is
+    #    connected (skipped otherwise; IDL_NO_INSTALL=1 / IDL_DEVICE=<udid|name>)
+    # `idl build --no-post-build` skips both.
+    post_build:
+      - [bash, build-support/embed-sidestore.sh]
+      - [bash, build-support/install-on-device.sh]
 
   # ----------------------------------------------------- frameworks
   - name: LiveContainerShared
