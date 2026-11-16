@@ -26,6 +26,12 @@
                                    code:(NSString* _Nullable)code
                                anisette:(NSDictionary<NSString*, NSString*>*)anisette
                              completion:(void (^)(NSData* _Nullable certificate, NSString* _Nullable password, NSString* _Nullable error))completion;
+- (void)provisionCertificateWithAppleID:(NSString*)appleID
+                               password:(NSString*)password
+                                   code:(NSString* _Nullable)code
+                               anisette:(NSDictionary<NSString*, NSString*>*)anisette
+                           codeProvider:(void (^)(NSString* _Nullable message, void (^reply)(NSString* _Nullable code)))codeProvider
+                             completion:(void (^)(NSData* _Nullable certificate, NSString* _Nullable password, NSString* _Nullable error))completion;
 @end
 
 static LiveProcessSideStoreHandler* handler = nil;
@@ -94,13 +100,31 @@ void installSideStoreHooks(void);
     }
     // The reply block must be invoked exactly once; the bridge calls completion
     // once on success or failure.
+    void (^completion)(NSData*, NSString*, NSString*) = ^(NSData* certificate, NSString* certPassword, NSString* error) {
+        reply(certificate, certPassword, error);
+    };
+    if ([bridge respondsToSelector:@selector(provisionCertificateWithAppleID:password:code:anisette:codeProvider:completion:)]) {
+        // SideStore's portal login sends its own 2FA code; ask the host UI for it.
+        NSObject<RefreshServer>* server = handler.server;
+        [bridge provisionCertificateWithAppleID:appleID
+                                       password:password
+                                           code:code
+                                       anisette:anisette
+                                   codeProvider:^(NSString* message, void (^codeReply)(NSString*)) {
+                                       if (!server) {
+                                           codeReply(nil);
+                                           return;
+                                       }
+                                       [server requestVerificationCodeWithMessage:message reply:codeReply];
+                                   }
+                                     completion:completion];
+        return;
+    }
     [bridge provisionCertificateWithAppleID:appleID
                                    password:password
                                        code:code
                                    anisette:anisette
-                                 completion:^(NSData* certificate, NSString* certPassword, NSString* error) {
-                                     reply(certificate, certPassword, error);
-                                 }];
+                                 completion:completion];
 }
 
 @end

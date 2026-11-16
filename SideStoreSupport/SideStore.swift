@@ -66,6 +66,7 @@ public struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, Pr
 class RefreshHandler: NSObject, RefreshServer {
     var c: UnsafeContinuation<(), any Error>? = nil
     var provisionC: CheckedContinuation<(Data, String), any Error>? = nil
+    var verificationCodeProvider: ((String?, @escaping (String?) -> Void) -> Void)? = nil
     var launchContinuation: UnsafeContinuation<(), any Error>? = nil
     var progress: Progress? = nil
     var listener: NSXPCListener? = nil
@@ -177,10 +178,15 @@ class RefreshHandler: NSObject, RefreshServer {
     /// built-in SideStore, feeding it the given credentials and the machine
     /// anisette snapshot produced by LiveContainer's App Store login stack.
     /// Returns the signing certificate (PKCS#12) and its password.
-    func startProvision(appleID: String, password: String, code: String?, anisette: [String: String]) async throws -> (Data, String) {
+    func startProvision(
+        appleID: String, password: String, code: String?, anisette: [String: String],
+        verificationCodeProvider: @escaping (String?, @escaping (String?) -> Void) -> Void
+    ) async throws -> (Data, String) {
         if provisionC != nil {
             throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Another certificate provisioning task is in progress."])
         }
+        self.verificationCodeProvider = verificationCodeProvider
+        defer { self.verificationCodeProvider = nil }
         try await ensureSideStoreLaunched()
         guard let client = self.client else {
             throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "SideStore client is unavailable."])
@@ -213,6 +219,14 @@ class RefreshHandler: NSObject, RefreshServer {
             c?.resume()
             c = nil
         }
+    }
+
+    func requestVerificationCode(withMessage message: String?, reply: @escaping (String?) -> Void) {
+        guard let provider = verificationCodeProvider else {
+            reply(nil)
+            return
+        }
+        provider(message, reply)
     }
 
     func onConnection(_ connection: NSXPCConnection) {

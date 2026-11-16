@@ -445,6 +445,25 @@ class LCAppModel: ObservableObject, Hashable {
             }
         }
 
+        // The built-in SideStore lives inside LiveContainer's own (read-only) app
+        // bundle, so its tweaks can't be embedded. Sign them in place instead;
+        // TweakLoader falls back to the Tweaks folders when LCTweaks is absent.
+        if appInfo is BuiltInSideStoreAppInfo {
+            if let tweakFolder = appInfo.tweakFolder, !tweakFolder.isEmpty,
+                FileManager.default.fileExists(atPath: LCPath.tweakPath.appendingPathComponent(tweakFolder).path)
+            {
+                try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath.appendingPathComponent(tweakFolder), force: force) { _ in
+                    Task { await MainActor.run { self.isSigningInProgress = true } }
+                }
+            }
+            if FileManager.default.fileExists(atPath: LCPath.tweakPath.path) {
+                try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath, force: force, recursive: false) { _ in
+                    Task { await MainActor.run { self.isSigningInProgress = true } }
+                }
+            }
+            return
+        }
+
         // Copy this app's tweaks (global + its tweak folder) into the guest bundle and
         // team-sign the copies there; TweakLoader loads them from the bundle.
         let globalTweakUrl = appInfo.isShared ? LCPath.lcGroupTweakPath : LCPath.tweakPath

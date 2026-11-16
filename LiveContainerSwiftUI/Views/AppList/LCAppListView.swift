@@ -239,7 +239,10 @@ struct LCAppListView: View, LCAppBannerDelegate, LCAppModelDelegate {
                 ToolbarItem(placement: .topBarLeading) {
                     if UserDefaults.sideStoreExist() {
                         Button {
-                            LCUtils.openSideStore(delegate: self)
+                            LCUtils.openSideStore(delegate: self) { message in
+                errorInfo = message
+                errorShow = true
+            }
                         } label: {
                             IconImageView(icon: BuiltInSideStoreAppInfo.shared.iconIsDarkIcon(darkModeIcon))
                                 .frame(width: UIFont.preferredFont(forTextStyle: .body).lineHeight, height: UIFont.preferredFont(forTextStyle: .body).lineHeight)
@@ -1199,7 +1202,10 @@ struct LCAppListView: View, LCAppBannerDelegate, LCAppModelDelegate {
 
         if url.scheme == "sidestore" && UserDefaults.sideStoreExist() {
             UserDefaults.standard.setValue(url.absoluteString, forKey: "launchAppUrlScheme")
-            LCUtils.openSideStore(delegate: self)
+            LCUtils.openSideStore(delegate: self) { message in
+                errorInfo = message
+                errorShow = true
+            }
             return
         }
 

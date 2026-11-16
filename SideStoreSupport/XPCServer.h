@@ -18,6 +18,10 @@ __attribute__((swift_attr("@Sendable")))
 - (void)finishedLaunching;
 - (void)addNotificationRequest:(UNNotificationRequest*)request;
 - (void)removePendingNotificationRequestsWithIdentifiers:(NSArray<NSString*>*)identifiers;
+// Called by the guest during headless provisioning when SideStore's portal
+// login needs a 2FA code. The host prompts the user and replies with the code,
+// or nil to cancel. `message` is the error from a previous failed attempt.
+- (void)requestVerificationCodeWithMessage:(NSString* _Nullable)message reply:(void (^)(NSString* _Nullable code))reply;
 @end
 
 @protocol RefreshClient

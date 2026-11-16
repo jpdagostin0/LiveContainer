@@ -22,6 +22,11 @@ final class LCAppStoreViewModel: ObservableObject {
     @Published var needsTwoFactor = false
     @Published var isProvisioningCertificate = false
     @Published var certificateProvisioned = false
+    // 2FA prompt for SideStore's developer-portal login during provisioning.
+    @Published var needsProvisioningCode = false
+    @Published var provisioningCodeMessage: String?
+    @Published var provisioningCode = ""
+    private var provisioningCodeReply: ((String?) -> Void)?
     @Published var statusText = ""
     @Published var progress = 0.0
     @Published var errorMessage: String?
@@ -117,10 +122,23 @@ final class LCAppStoreViewModel: ObservableObject {
         }
 
         let (certificate, certPassword, provisionError): (Data?, String?, String?) = await withCheckedContinuation { continuation in
-            provisioner.provisionCertificate(withEmail: email, password: password, code: code, anisette: anisette) { cert, pwd, err in
+            provisioner.provisionCertificate(
+                withEmail: email, password: password, code: code, anisette: anisette,
+                verificationCodeProvider: { [weak self] message, reply in
+                    Task { @MainActor in
+                        guard let self else {
+                            reply(nil)
+                            return
+                        }
+                        self.requestProvisioningCode(message: message, reply: reply)
+                    }
+                }
+            ) { cert, pwd, err in
                 continuation.resume(returning: (cert, pwd, err))
             }
         }
+        // Never leave the guest waiting on an unanswered prompt.
+        submitProvisioningCode(nil)
 
         if let certificate, let certPassword {
             LCUtils.appGroupUserDefault.set(certificate, forKey: "LCCertificateData")
@@ -129,8 +147,26 @@ final class LCAppStoreViewModel: ObservableObject {
             UserDefaults.standard.set(LCSharedUtils.appGroupID(), forKey: "LCAppGroupID")
             certificateProvisioned = true
         } else {
-            errorMessage = provisionError ?? "Certificate provisioning failed."
+            errorMessage = "Signed in, but SideStore couldn't create the signing certificate: " + (provisionError ?? "unknown error")
         }
+    }
+
+    private func requestProvisioningCode(message: String?, reply: @escaping (String?) -> Void) {
+        // Only one prompt at a time; cancel any stale one.
+        provisioningCodeReply?(nil)
+        provisioningCodeReply = reply
+        provisioningCodeMessage = message
+        provisioningCode = ""
+        needsProvisioningCode = true
+    }
+
+    func submitProvisioningCode(_ code: String?) {
+        let reply = provisioningCodeReply
+        provisioningCodeReply = nil
+        needsProvisioningCode = false
+        provisioningCodeMessage = nil
+        let trimmed = code?.trimmingCharacters(in: .whitespacesAndNewlines)
+        reply?((trimmed?.isEmpty ?? true) ? nil : trimmed)
     }
 
     func signOut() {
@@ -595,6 +631,28 @@ private struct LCAppStoreLoginView: View {
             .overlay {
                 if viewModel.isSigningIn {
                     ProgressView()
+                }
+            }
+            .alert(
+                "lc.appStore.code".loc,
+                isPresented: Binding(
+                    get: { viewModel.needsProvisioningCode },
+                    set: { if !$0 && viewModel.needsProvisioningCode { viewModel.submitProvisioningCode(nil) } })
+            ) {
+                TextField("lc.appStore.code".loc, text: $viewModel.provisioningCode)
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                Button("lc.common.cancel".loc, role: .cancel) {
+                    viewModel.submitProvisioningCode(nil)
+                }
+                Button("lc.common.ok".loc) {
+                    viewModel.submitProvisioningCode(viewModel.provisioningCode)
+                }
+            } message: {
+                if let message = viewModel.provisioningCodeMessage, !message.isEmpty {
+                    Text("\(message)\n\nEnter the new verification code sent to your Apple devices to create the signing certificate.")
+                } else {
+                    Text("Enter the new verification code sent to your Apple devices to create the signing certificate.")
                 }
             }
         }

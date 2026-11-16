@@ -639,7 +639,7 @@ extension LCUtils {
         }
     }
 
-    static func openSideStore(delegate: LCAppModelDelegate? = nil, urlStr: String? = nil) {
+    static func openSideStore(delegate: LCAppModelDelegate? = nil, urlStr: String? = nil, onError: ((String) -> Void)? = nil) {
         let sideStoreApp = LCAppModel(appInfo: BuiltInSideStoreAppInfo.shared, delegate: delegate)
 
         Task {
@@ -647,6 +647,7 @@ extension LCUtils {
                 try await sideStoreApp.runApp(bundleIdOverride: "builtinSideStore", urlStr: urlStr)
             } catch {
                 NSLog("[LC] Failed to open built-in SideStore: \(error)")
+                await MainActor.run { onError?(error.localizedDescription) }
             }
         }
     }

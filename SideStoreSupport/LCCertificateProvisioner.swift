@@ -22,6 +22,7 @@ public final class LCCertificateProvisioner: NSObject, LCCertificateProvisioning
         password: String,
         code: String?,
         anisette: [String: String],
+        verificationCodeProvider: @escaping (String?, @escaping (String?) -> Void) -> Void,
         completion: @escaping (Data?, String?, String?) -> Void
     ) {
         Task {
@@ -30,7 +31,8 @@ public final class LCCertificateProvisioner: NSObject, LCCertificateProvisioning
                     appleID: email,
                     password: password,
                     code: code,
-                    anisette: anisette
+                    anisette: anisette,
+                    verificationCodeProvider: verificationCodeProvider
                 )
                 completion(certificate, certPassword, nil)
             } catch {

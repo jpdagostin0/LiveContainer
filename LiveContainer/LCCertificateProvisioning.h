@@ -23,10 +23,18 @@ NS_ASSUME_NONNULL_BEGIN
 /// snapshot (keys per LCProvisioningBridge) produced by LiveContainer's App
 /// Store login stack. The completion returns the signing certificate (PKCS#12)
 /// and its password on success, or an error message on failure.
+///
+/// SideStore's developer-portal (GSA) login is separate from the App Store
+/// login and sends its own 2FA code, so the App Store code can't be reused.
+/// When it needs one, `verificationCodeProvider` is called (on any queue) with
+/// an optional error message from a previous failed attempt; call `reply` once
+/// with the code, or nil to cancel.
 - (void)provisionCertificateWithEmail:(NSString *)email
                              password:(NSString *)password
                                  code:(nullable NSString *)code
                              anisette:(NSDictionary<NSString *, NSString *> *)anisette
+             verificationCodeProvider:(void (^)(NSString * _Nullable message,
+                                                void (^reply)(NSString * _Nullable code)))verificationCodeProvider
                            completion:(void (^)(NSData * _Nullable certificate,
                                                 NSString * _Nullable password,
                                                 NSString * _Nullable error))completion;
