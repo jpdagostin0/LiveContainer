@@ -47,8 +47,10 @@ TEAM_ID          ?= AAAAA11111
 BUNDLE_ID        ?= com.kdt.livecontainer
 MARKETING_VERSION ?= $(shell $(PYTHON) -c "import plistlib;print(plistlib.load(open('LiveContainer/Info.plist','rb'))['CFBundleShortVersionString'])")
 CONFIGURATION    ?= Release
-# The plain LiveContainer.ipa from CI ships without SideStoreSupport.framework
-INCLUDE_SIDESTORE ?= 0
+# Our fork ships SideStoreSupport by default: the FairPlay decrypt needs a
+# writable SideStore/AltStore app-group container for staging, which only a
+# store-grade install provisions.
+INCLUDE_SIDESTORE ?= 1
 
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo unknown)
 GIT_COMMIT := $(shell git log -1 --format=%h 2>/dev/null || echo unknown)
