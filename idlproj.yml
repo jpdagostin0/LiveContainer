@@ -1,0 +1,55 @@
+# idlproj.yml: Linux build of LiveContainer with ../ios-dev-linux (`idl`).
+#
+# Hybrid build: the Makefile builds the dynamic components idl's single-target
+# model can't express (LiveContainerShared.framework, LiveContainerSwiftUI.framework,
+# ZSign/TweakLoader/TestJITLess dylibs, the .appex extensions) into build/products
+# and stages them under build-idl/stage/. idl builds the main.c bootstrap stub,
+# assembles the .app (Info.plist + entitlements + staged Frameworks/PlugIns +
+# resources), ldid-signs, and zips the IPA.
+#
+#   make stage          # build + stage the dynamic components (Makefile)
+#   idl build           # -> build-idl/LiveContainer.ipa
+#
+# main.c is a dlopen bootstrap (entry _LiveContainerMainC) that loads
+# LiveContainerShared.framework at runtime, so it stays a tiny standalone exe.
+
+toolchain:
+  sdk_bundle: ~/.swiftpm/swift-sdks/darwin.artifactbundle
+  swiftly_bin: ~/.local/share/swiftly/bin
+
+targets:
+  - name: LiveContainer
+    builder: direct
+    dir: .
+    bundle_id: com.kdt.livecontainer
+    min_ios: "15.0"
+    version: "3.7.11"
+    build_number: "1"
+    build_dir: build-idl
+    sources: [LiveContainer/main.c]
+    # main.c is a pure bootstrap stub; it links only libSystem (dlopen).
+    frameworks: []
+    # Custom entry point; everything else is dlopened from Frameworks/ at runtime.
+    ldflags: ["-e", "_LiveContainerMainC"]
+    # Pre-processed by `make stage` (lcbuild strips the LaunchScreen storyboard
+    # key idl can't satisfy, and applies the app plist overrides).
+    info_plist: build-idl/gen/Info.plist
+    plist_vars:
+      PRODUCT_BUNDLE_IDENTIFIER: com.kdt.livecontainer
+      DEVELOPMENT_TEAM: AAAAA11111
+      AppIdentifierPrefix: "AAAAA11111."
+      APP_GROUP_SIDESTORE: group.com.SideStore.SideStore
+      APP_GROUP_ALTSTORE: group.com.rileytestut.AltStore
+    entitlements: entitlements.xml
+    resources:
+      # Opaque .framework bundles (idl routes these to Frameworks/).
+      # Loose dylibs, .appex extensions and .lproj are injected by
+      # `make idl-postbundle` because idl's resource router can't place them.
+      - build-idl/stage/Frameworks
+      # LiveContainer target resources (Resources/ group members).
+      - Resources/Settings.bundle
+      - Resources/universal.js
+      - Resources/DefaultIcon.png
+      - Resources/AppIconGrey60x60@2x.png
+      - "Resources/AppIconGrey76x76@2x~ipad.png"
+      - LiveContainerSwiftUI/ViewApp.intentdefinition

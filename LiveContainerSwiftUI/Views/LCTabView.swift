@@ -29,6 +29,11 @@ struct LCTabView: View {
                         Label("lc.tabView.sources".loc, systemImage: "books.vertical")
                     }
                     .tag(LCTabIdentifier.sources)
+                LCAppStoreView()
+                    .tabItem {
+                        Label("lc.tabView.appStore".loc, systemImage: "bag")
+                    }
+                    .tag(LCTabIdentifier.appStore)
             }
             LCAppListView()
                 .tabItem {

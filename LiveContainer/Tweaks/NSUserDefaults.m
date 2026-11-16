@@ -100,14 +100,16 @@ void NUDGuestHooksInit(void) {
     
 }
 
-NSArray* appleIdentifierPrefixes = @[
+// plain C array: constant NSArray literals at file scope need Apple clang
+static NSString* const appleIdentifierPrefixes[] = {
     @"com.apple.",
     @"group.com.apple.",
     @"systemgroup.com.apple."
-];
+};
 
 bool isAppleIdentifier(NSString* identifier) {
-    for(NSString* cur in appleIdentifierPrefixes) {
+    for(size_t i = 0; i < sizeof(appleIdentifierPrefixes) / sizeof(appleIdentifierPrefixes[0]); i++) {
+        NSString* cur = appleIdentifierPrefixes[i];
         if([identifier hasPrefix:cur]) {
             return true;
         }
