@@ -121,6 +121,41 @@ final class IPAToolIOSService {
         try keychain.loadAccount()
     }
 
+    /// Marks the Keychain-saved account as signed in after a relaunch, without
+    /// any network traffic. The stateful store client (token, cookies, Store
+    /// AMD proof) does not survive a relaunch, so it is rebuilt lazily from the
+    /// saved credentials on the first call that needs it (see `ensureClient`).
+    func restoreSavedAccount() -> IPAToolIOSAccount? {
+        if let activeAccount { return activeAccount }
+        guard let saved = try? keychain.loadAccount() else { return nil }
+        activeAccount = saved
+        return saved
+    }
+
+    /// Returns a logged-in store client, silently re-authenticating with the
+    /// saved account when the in-memory session was lost (app relaunch). The
+    /// device GUID is derived from the Apple ID, so Apple normally skips 2FA.
+    private func ensureClient() async throws -> AppStoreClient {
+        if let client, activeAccount != nil {
+            return client
+        }
+        guard activeAccount != nil || (try? keychain.loadAccount()) != nil else {
+            throw IPAToolIOSError.notAuthenticated
+        }
+        do {
+            _ = try await authenticateSavedAccount()
+        } catch {
+            // The saved session can't be restored without user input (2FA,
+            // changed password): drop the in-memory sign-in so the UI asks again.
+            activeAccount = nil
+            client = nil
+            clientEmail = nil
+            throw error
+        }
+        guard let client else { throw IPAToolIOSError.notAuthenticated }
+        return client
+    }
+
     /// Machine-anisette snapshot (LCProvisioningBridge keys) from the CoreADI
     /// identity used for login, for the built-in SideStore to provision a
     /// signing certificate against the same machine identity.
@@ -147,9 +182,7 @@ final class IPAToolIOSService {
         to destinationURL: URL,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws -> IPAToolIOSDownload {
-        guard let storeClient = client, activeAccount != nil else {
-            throw IPAToolIOSError.notAuthenticated
-        }
+        let storeClient = try await ensureClient()
 
         let item = try await storeItem(client: storeClient, appIdentifier: app.id)
         guard let sinf = item.signatures.first(where: { $0.id == 0 }) ?? item.signatures.first else {

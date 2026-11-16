@@ -35,7 +35,8 @@ final class LCAppStoreViewModel: ObservableObject {
     private let installedImportService = LCInstalledAppImportService.shared
 
     init() {
-        if let saved = try? service.savedAccount() {
+        if let saved = service.restoreSavedAccount() {
+            account = saved
             email = saved.email
         }
     }
@@ -359,6 +360,11 @@ final class LCAppStoreViewModel: ObservableObject {
                 errorMessage = error.localizedDescription
             }
             try? fileManager.removeItem(at: workRoot)
+            // A failed silent re-login (e.g. 2FA needed after relaunch) clears
+            // the service's session; reflect it so the Sign In button returns.
+            if service.activeAccount == nil {
+                account = nil
+            }
         }
 
         isBusy = false
