@@ -14,7 +14,7 @@ static LCExtensionInitializer originalInitWithPKPlugin;
 static NSMutableSet *activeGuestExtensions;
 
 static NSError *LCGuestExtensionError(NSString *message) {
-    return [NSError errorWithDomain:@"LCGuestExtension" code:1 userInfo:@{NSLocalizedDescriptionKey: message}];
+    return [NSError errorWithDomain:@"LCGuestExtension" code:1 userInfo:@{NSLocalizedDescriptionKey : message}];
 }
 
 // Subclass the app's declared context rather than replacing it: vendor methods
@@ -62,13 +62,13 @@ static LCGuestExtensionContextState *LCContextState(id context) {
 
 static NSExtensionContext *LCCreateGuestContext(Class base, LCGuestExtensionContextState *state) {
     if (![base isSubclassOfClass:NSExtensionContext.class]) return nil;
-    @synchronized (NSExtensionContext.class) {
+    @synchronized(NSExtensionContext.class) {
         NSString *name = [@"LCGuest_" stringByAppendingString:NSStringFromClass(base)];
         Class subclass = NSClassFromString(name);
         if (!subclass) {
             subclass = objc_allocateClassPair(base, name.UTF8String, 0);
             if (!subclass) return nil;
-            for (NSString *selector in @[@"inputItems", @"_auxiliaryConnection", @"completeRequestReturningItems:completionHandler:", @"cancelRequestWithError:"]) {
+            for (NSString *selector in @[ @"inputItems", @"_auxiliaryConnection", @"completeRequestReturningItems:completionHandler:", @"cancelRequestWithError:" ]) {
                 Method method = class_getInstanceMethod(LCGuestExtensionContext.class, NSSelectorFromString(selector));
                 class_addMethod(subclass, method_getName(method), method_getImplementation(method), method_getTypeEncoding(method));
             }
@@ -113,7 +113,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
 
 @implementation LCGuestExtensionContextState
 - (BOOL)listener:(NSXPCListener *)listener shouldAcceptNewConnection:(NSXPCConnection *)connection {
-    @synchronized (self) {
+    @synchronized(self) {
         if (self.listener != listener) return NO;
         if (self.vendorListener) {
             if (self.connection) return NO;
@@ -132,7 +132,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
     }
 }
 - (void)lcConnectWithEndpoint:(NSXPCListenerEndpoint *)endpoint completion:(void (^)(void))completion {
-    @synchronized (self) {
+    @synchronized(self) {
         if (self.listener && !self.vendorListener && !self.connection) {
             self.connection = [[NSXPCConnection alloc] initWithListenerEndpoint:endpoint];
             self.connection.exportedInterface = LCAuxiliaryInterface(self.context.class, YES);
@@ -144,7 +144,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
     completion();
 }
 - (void)invalidate {
-    @synchronized (self) {
+    @synchronized(self) {
         [self.listener invalidate];
         [self.connection invalidate];
         [self.controlConnection invalidate];
@@ -183,7 +183,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
 @implementation LCGuestExtension
 
 - (void)finishRequest:(NSUUID *)identifier {
-    @synchronized (activeGuestExtensions) {
+    @synchronized(activeGuestExtensions) {
         if (identifier) {
             if (![self.requests containsObject:identifier] && self.pendingRequests) [self.finishedRequests addObject:identifier];
             [self.requests removeObject:identifier];
@@ -219,7 +219,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
     }
     NSURL *containerURL = [[guestExtensionsContainerURL URLByAppendingPathComponent:@"Extensions" isDirectory:YES] URLByAppendingPathComponent:component isDirectory:YES];
     NSFileManager *fm = NSFileManager.defaultManager;
-    for (NSString *directory in @[@"Documents", @"Library/Caches", @"Library/Preferences", @"tmp"]) {
+    for (NSString *directory in @[ @"Documents", @"Library/Caches", @"Library/Preferences", @"tmp" ]) {
         if (![fm createDirectoryAtURL:[containerURL URLByAppendingPathComponent:directory] withIntermediateDirectories:YES attributes:nil error:&error]) break;
     }
     NSMutableArray *bookmarks = [NSMutableArray array];
@@ -233,7 +233,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
     }
     if (!error) [fm createDirectoryAtPath:appGroupPath withIntermediateDirectories:YES attributes:nil error:&error];
     if (!error) {
-        for (NSURL *url in @[guestExtensionsAppURL, containerURL, [NSURL fileURLWithPath:appGroupPath isDirectory:YES]]) {
+        for (NSURL *url in @[ guestExtensionsAppURL, containerURL, [NSURL fileURLWithPath:appGroupPath isDirectory:YES] ]) {
             NSData *bookmark = [url bookmarkDataWithOptions:(1 << 11) includingResourceValuesForKeys:nil relativeToURL:nil error:&error];
             if (!bookmark) break;
             [bookmarks addObject:bookmark];
@@ -260,24 +260,24 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
     }
     NSExtensionItem *envelope = [NSExtensionItem new];
     envelope.userInfo = @{
-        @"LCGuestExtension": @{
-            @"bundlePath": self.bundle.bundlePath,
-            @"appBundlePath": guestExtensionsAppURL.path,
-            @"containerPath": containerURL.path,
-            @"bookmarks": bookmarks,
-            @"inputItems": items ?: @[],
-            @"guestAppInfo": NSUserDefaults.guestAppInfo ?: @{},
-            @"guestContainerInfo": NSUserDefaults.guestContainerInfo ?: @{},
-            @"appGroupPath": NSUserDefaults.lcAppGroupPath ?: @"",
-            @"parentContainerPath": guestExtensionsContainerURL.path,
-            @"lcHomePath": @(getenv("LC_HOME_PATH")),
+        @"LCGuestExtension" : @{
+            @"bundlePath" : self.bundle.bundlePath,
+            @"appBundlePath" : guestExtensionsAppURL.path,
+            @"containerPath" : containerURL.path,
+            @"bookmarks" : bookmarks,
+            @"inputItems" : items ?: @[],
+            @"guestAppInfo" : NSUserDefaults.guestAppInfo ?: @{},
+            @"guestContainerInfo" : NSUserDefaults.guestContainerInfo ?: @{},
+            @"appGroupPath" : NSUserDefaults.lcAppGroupPath ?: @"",
+            @"parentContainerPath" : guestExtensionsContainerURL.path,
+            @"lcHomePath" : @(getenv("LC_HOME_PATH")),
         }
     };
     if (endpoint) {
         NSMutableDictionary *payload = [envelope.userInfo[@"LCGuestExtension"] mutableCopy];
         payload[@"auxiliaryEndpoint"] = endpoint;
         payload[@"auxiliaryHandshake"] = @(state.usesHandshake);
-        envelope.userInfo = @{@"LCGuestExtension": payload};
+        envelope.userInfo = @{@"LCGuestExtension" : payload};
     }
     *stateOut = state;
     self.extension.preferredLanguages = self.preferredLanguages ?: @[];
@@ -297,7 +297,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
         if (proxy.interruptionBlock) proxy.interruptionBlock(uuid);
         [proxy finishRequest:uuid];
     }];
-    @synchronized (activeGuestExtensions) {
+    @synchronized(activeGuestExtensions) {
         state.generation = self.generation;
         self.pendingRequests++;
         [activeGuestExtensions addObject:self];
@@ -306,7 +306,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
 }
 
 - (void)registerRequest:(NSUUID *)uuid contextState:(LCGuestExtensionContextState *)state {
-    @synchronized (activeGuestExtensions) {
+    @synchronized(activeGuestExtensions) {
         self.pendingRequests--;
         state.cancelled = state.generation != self.generation;
         if (uuid && !state.cancelled && ![self.finishedRequests containsObject:uuid]) {
@@ -334,7 +334,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
         return;
     }
     // Keep the proxy alive until the system has returned its request UUID.
-    [self.extension beginExtensionRequestWithInputItems:@[envelope] completion:^(NSUUID *uuid) {
+    [self.extension beginExtensionRequestWithInputItems:@[ envelope ] completion:^(NSUUID *uuid) {
         LCGuestExtension *proxy = self;
         [proxy registerRequest:uuid contextState:state];
         // Do not dispatch to the main queue: RAM donors synchronously wait for
@@ -353,7 +353,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
         // Use the system's synchronous implementation. Waiting on our async
         // wrapper can deadlock when the caller is on the main thread.
         if ([self.extension respondsToSelector:_cmd]) {
-            uuid = [self.extension beginExtensionRequestWithInputItems:@[envelope] error:&error];
+            uuid = [self.extension beginExtensionRequestWithInputItems:@[ envelope ] error:&error];
         } else {
             error = LCGuestExtensionError(@"Synchronous extension requests are unavailable on this iOS version");
         }
@@ -374,9 +374,9 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
 }
 
 - (NSExtensionContext *)_extensionContextForUUID:(NSUUID *)identifier {
-    @synchronized (activeGuestExtensions) {
+    @synchronized(activeGuestExtensions) {
         LCGuestExtensionContextState *state = self.contexts[identifier];
-        @synchronized (state) {
+        @synchronized(state) {
             if (state.connection) return state.context;
         }
     }
@@ -399,7 +399,7 @@ static void LCConnectGuestContext(LCGuestExtensionContextState *state, Class con
 }
 
 - (void)_kill:(int)signal {
-    @synchronized (activeGuestExtensions) {
+    @synchronized(activeGuestExtensions) {
         self.generation++;
         for (LCGuestExtensionContextState *state in self.contexts.allValues) [state invalidate];
         [self.contexts removeAllObjects];

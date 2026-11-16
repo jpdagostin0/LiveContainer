@@ -19,7 +19,7 @@ enum AssociatedDomainResolver {
     private static func fetchBundleIDs(for host: String) async -> [String] {
         let urls = [
             URL(string: "https://\(host)/apple-app-site-association"),
-            URL(string: "https://\(host)/.well-known/apple-app-site-association")
+            URL(string: "https://\(host)/.well-known/apple-app-site-association"),
         ].compactMap { $0 }
 
         return await withTaskGroup(of: [String].self) { group in

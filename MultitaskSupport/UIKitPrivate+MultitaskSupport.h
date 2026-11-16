@@ -11,23 +11,23 @@
 extern const UIApplication *UIApp;
 
 @interface LSResourceProxy : NSObject
-    @property (setter=_setLocalizedName:,nonatomic,copy) NSString *localizedName;
+@property(setter=_setLocalizedName:, nonatomic, copy) NSString *localizedName;
 @end
 
 @interface LSBundleProxy : LSResourceProxy
 @end
 
 @interface LSApplicationProxy : LSBundleProxy
-    @property(nonatomic, assign, readonly) NSString *bundleIdentifier;
-    @property(nonatomic, assign, readonly) NSString *localizedShortName;
-    @property(nonatomic, assign, readonly) NSString *primaryIconName;
+@property(nonatomic, assign, readonly) NSString *bundleIdentifier;
+@property(nonatomic, assign, readonly) NSString *localizedShortName;
+@property(nonatomic, assign, readonly) NSString *primaryIconName;
 
-    @property (nonatomic,readonly) NSString * applicationIdentifier;
-    @property (nonatomic,readonly) NSString * applicationType;
-    @property (nonatomic,readonly) NSArray * appTags;
-    @property (getter=isLaunchProhibited,nonatomic,readonly) BOOL launchProhibited;
-    @property (getter=isPlaceholder,nonatomic,readonly) BOOL placeholder;
-    @property (getter=isRemovedSystemApp,nonatomic,readonly) BOOL removedSystemApp;
+@property(nonatomic, readonly) NSString *applicationIdentifier;
+@property(nonatomic, readonly) NSString *applicationType;
+@property(nonatomic, readonly) NSArray *appTags;
+@property(getter=isLaunchProhibited, nonatomic, readonly) BOOL launchProhibited;
+@property(getter=isPlaceholder, nonatomic, readonly) BOOL placeholder;
+@property(getter=isRemovedSystemApp, nonatomic, readonly) BOOL removedSystemApp;
 @end
 
 @interface BSCornerRadiusConfiguration : NSObject
@@ -49,7 +49,7 @@ extern const UIApplication *UIApp;
 @class RBSProcessIdentity, FBProcessExecutableSlice, UIMutableApplicationSceneClientSettings, UIMutableScenePresentationContext, UIScenePresentationManager, _UIScenePresenter, _UISceneEventDeferringHostComponent, _UISceneRelationshipManagementHostComponent;
 
 @interface FBApplicationProcessLaunchTransaction : BSTransaction
-- (instancetype) initWithProcessIdentity:(RBSProcessIdentity *)identity executionContextProvider:(id)providerBlock;
+- (instancetype)initWithProcessIdentity:(RBSProcessIdentity *)identity executionContextProvider:(id)providerBlock;
 - (void)_begin;
 @end
 
@@ -58,20 +58,20 @@ extern const UIApplication *UIApp;
 
 @interface FBMutableProcessExecutionContext : FBProcessExecutionContext
 
-@property (nonatomic,copy) RBSProcessIdentity * identity;
-@property (nonatomic,copy) NSArray * arguments;
-@property (nonatomic,copy) NSDictionary * environment;
-@property (nonatomic,retain) NSURL * standardOutputURL;
-@property (nonatomic,retain) NSURL * standardErrorURL;
-@property (assign,nonatomic) BOOL waitForDebugger;
-@property (assign,nonatomic) BOOL disableASLR;
-@property (assign,nonatomic) BOOL checkForLeaks;
-@property (assign,nonatomic) long long launchIntent;
+@property(nonatomic, copy) RBSProcessIdentity *identity;
+@property(nonatomic, copy) NSArray *arguments;
+@property(nonatomic, copy) NSDictionary *environment;
+@property(nonatomic, retain) NSURL *standardOutputURL;
+@property(nonatomic, retain) NSURL *standardErrorURL;
+@property(assign, nonatomic) BOOL waitForDebugger;
+@property(assign, nonatomic) BOOL disableASLR;
+@property(assign, nonatomic) BOOL checkForLeaks;
+@property(assign, nonatomic) long long launchIntent;
 //@property (nonatomic,retain) id<FBProcessWatchdogProviding> watchdogProvider;
-@property (nonatomic,copy) NSString * overrideExecutablePath;
+@property(nonatomic, copy) NSString *overrideExecutablePath;
 //@property (nonatomic,retain) FBProcessExecutableSlice * overrideExecutableSlice;
-@property (nonatomic,copy) id completion;
--(id)copyWithZone:(NSZone*)arg1 ;
+@property(nonatomic, copy) id completion;
+- (id)copyWithZone:(NSZone *)arg1;
 @end
 
 @interface FBProcess : NSObject
@@ -85,11 +85,11 @@ extern const UIApplication *UIApp;
 - (UIScenePresentationManager *)uiPresentationManager;
 - (void)_performUpdateWithoutActivation:(void (^)(UIMutableApplicationSceneSettings *settings, FBSSceneTransitionContext *context))updateBlock;
 - (void)updateSettings:(UIMutableApplicationSceneSettings *)settings withTransitionContext:(id)context completion:(id)completion;
-- (void)updateSettingsWithBlock:(void(^)(UIMutableApplicationSceneSettings *settings))arg1;
-- (void)updateSettingsWithTransitionBlock:(UIApplicationSceneTransitionContext *(^)(/* FBSMutableSceneSettings * */ id settings))transitionBlock;
+- (void)updateSettingsWithBlock:(void (^)(UIMutableApplicationSceneSettings *settings))arg1;
+- (void)updateSettingsWithTransitionBlock:(UIApplicationSceneTransitionContext * (^)(/* FBSMutableSceneSettings * */ id settings))transitionBlock;
 - (void)addExtension:(Class)extension;
-- (void)configureParameters:(void(^)(FBSMutableSceneParameters *parameters))parametersBlock;
-- (id)ui_viewServiceComponent;// API_AVAILABLE(ios(26.0));
+- (void)configureParameters:(void (^)(FBSMutableSceneParameters *parameters))parametersBlock;
+- (id)ui_viewServiceComponent; // API_AVAILABLE(ios(26.0));
 @end
 
 @interface FBDisplayManager : NSObject
@@ -141,7 +141,7 @@ extern const UIApplication *UIApp;
 @end
 
 // FBSSceneSettings
-@interface UIApplicationSceneSettings(Multitask)
+@interface UIApplicationSceneSettings (Multitask)
 - (bool)isForeground;
 - (CGRect)frame;
 - (UIInterfaceOrientation)interfaceOrientation;
@@ -149,24 +149,24 @@ extern const UIApplication *UIApp;
 @end
 
 @interface FBScene (a)
-- (UIApplicationSceneSettings*)settings;
+- (UIApplicationSceneSettings *)settings;
 @end
 
-@interface UIMutableApplicationSceneSettings(Multitask)
+@interface UIMutableApplicationSceneSettings (Multitask)
 @property(nonatomic, assign, readwrite) BOOL canShowAlerts;
 @property(nonatomic, assign, readwrite) NSUInteger deactivationReasons;
 @property(nonatomic, assign) BOOL deviceOrientationEventsEnabled;
 @property(nonatomic, assign, readwrite) NSInteger interruptionPolicy;
 @property(nonatomic, strong, readwrite) NSString *persistenceIdentifier;
-@property (nonatomic, assign, readwrite) UIEdgeInsets peripheryInsets;
-@property (nonatomic, assign, readwrite) UIEdgeInsets safeAreaInsetsPortrait, safeAreaInsetsPortraitUpsideDown, safeAreaInsetsLandscapeLeft, safeAreaInsetsLandscapeRight;
-@property (nonatomic, assign, readwrite) UIEdgeInsets safeAreaEdgeInsets API_AVAILABLE(ios(19.0));
+@property(nonatomic, assign, readwrite) UIEdgeInsets peripheryInsets;
+@property(nonatomic, assign, readwrite) UIEdgeInsets safeAreaInsetsPortrait, safeAreaInsetsPortraitUpsideDown, safeAreaInsetsLandscapeLeft, safeAreaInsetsLandscapeRight;
+@property(nonatomic, assign, readwrite) UIEdgeInsets safeAreaEdgeInsets API_AVAILABLE(ios(19.0));
 @property(assign, nonatomic, readwrite) UIUserInterfaceStyle userInterfaceStyle;
 @property(assign, nonatomic, readwrite) UIDeviceOrientation deviceOrientation;
-@property (nonatomic, strong, readwrite) BSCornerRadiusConfiguration *cornerRadiusConfiguration;
-@property (assign,nonatomic) CGRect statusBarAvoidanceFrame;
-@property (assign,nonatomic) double statusBarHeight;
-@property (assign,nonatomic, getter=isForeground) bool foreground;
+@property(nonatomic, strong, readwrite) BSCornerRadiusConfiguration *cornerRadiusConfiguration;
+@property(assign, nonatomic) CGRect statusBarAvoidanceFrame;
+@property(assign, nonatomic) double statusBarHeight;
+@property(assign, nonatomic, getter=isForeground) bool foreground;
 - (id)displayConfiguration;
 - (CGRect)frame;
 - (NSMutableSet *)ignoreOcclusionReasons;
@@ -179,10 +179,10 @@ extern const UIApplication *UIApp;
 - (BSSettings *)otherSettings;
 @end
 
-@interface FBSSceneParameters(Multitask)
+@interface FBSSceneParameters (Multitask)
 + (instancetype)parametersForSpecification:(FBSSceneSpecification *)spec;
-- (void)updateClientSettingsWithBlock:(void(^)(UIMutableApplicationSceneClientSettings *clientSettings))block;
-- (void)updateSettingsWithBlock:(void(^)(UIMutableApplicationSceneSettings *settings))block;
+- (void)updateClientSettingsWithBlock:(void (^)(UIMutableApplicationSceneClientSettings *clientSettings))block;
+- (void)updateSettingsWithBlock:(void (^)(UIMutableApplicationSceneSettings *settings))block;
 @end
 
 @interface FBSMutableSceneDefinition : NSObject
@@ -195,15 +195,15 @@ extern const UIApplication *UIApp;
 @interface FBSceneManager : NSObject
 + (instancetype)sharedInstance;
 - (FBScene *)createSceneWithDefinition:(id)def initialParameters:(id)params;
--(void)destroyScene:(id)arg1 withTransitionContext:(id)arg2 ;
+- (void)destroyScene:(id)arg1 withTransitionContext:(id)arg2;
 @end
 
 @interface FBSSceneSettingsDiff : NSObject
-- (UIMutableApplicationSceneSettings *)settingsByApplyingToMutableCopyOfSettings:(UIApplicationSceneSettings *)settings ;
+- (UIMutableApplicationSceneSettings *)settingsByApplyingToMutableCopyOfSettings:(UIApplicationSceneSettings *)settings;
 @end
 
 // UIKit
-@protocol _UISceneSettingsDiffAction<NSObject>
+@protocol _UISceneSettingsDiffAction <NSObject>
 @required
 - (void)_performActionsForUIScene:(UIScene *)scene withUpdatedFBSScene:(id)fbsScene settingsDiff:(FBSSceneSettingsDiff *)diff fromSettings:(id)settings transitionContext:(id)context lifecycleActionType:(uint32_t)actionType;
 @end
@@ -212,7 +212,7 @@ API_AVAILABLE(ios(17.0))
 @interface _UIFluidSliderInteraction : NSObject
 @end
 
-@interface UIImage(internal)
+@interface UIImage (internal)
 + (instancetype)_applicationIconImageForBundleIdentifier:(NSString *)bundleID format:(NSInteger)format scale:(CGFloat)scale;
 @end
 
@@ -247,11 +247,11 @@ API_AVAILABLE(ios(17.0))
 @end
 
 @interface _UIScenePresenter : NSObject
-@property (nonatomic, copy, readonly) NSString *identifier;
-@property (nonatomic, assign, readonly) _UIScenePresentationView *presentationView;
+@property(nonatomic, copy, readonly) NSString *identifier;
+@property(nonatomic, assign, readonly) _UIScenePresentationView *presentationView;
 @property(nonatomic, assign, readonly) FBScene *scene;
 - (instancetype)initWithOwner:(_UIScenePresenterOwner *)manager identifier:(NSString *)scene sortContext:(NSNumber *)context;
-- (void)modifyPresentationContext:(void(^)(UIMutableScenePresentationContext *context))block;
+- (void)modifyPresentationContext:(void (^)(UIMutableScenePresentationContext *context))block;
 - (BOOL)isActive;
 - (void)activate;
 - (void)deactivate;
@@ -271,12 +271,12 @@ API_AVAILABLE(ios(17.0))
 - (void)_setPresentationContext:(UIScenePresentationContext *)context;
 @end
 
-@interface UIScene(Private)
+@interface UIScene (Private)
 - (void)_registerSettingsDiffActionArray:(NSArray<id<_UISceneSettingsDiffAction>> *)array forKey:(NSString *)key;
 - (void)_unregisterSettingsDiffActionArrayForKey:(NSString *)key;
 @end
 
-@interface UIApplication()
+@interface UIApplication ()
 - (void)launchApplicationWithIdentifier:(NSString *)identifier suspended:(BOOL)suspended;
 @end
 
@@ -284,7 +284,7 @@ API_AVAILABLE(ios(17.0))
 @property(nonatomic, assign) NSUInteger appearanceStyle;
 @end
 
-@interface UIViewController(Private)
+@interface UIViewController (Private)
 - (void)viewDidMoveToWindow:(UIWindow *)window shouldAppearOrDisappear:(BOOL)appear;
 @end
 

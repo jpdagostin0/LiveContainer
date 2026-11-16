@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 import UniformTypeIdentifiers
 
-struct LCTweakItem : Hashable {
+struct LCTweakItem: Hashable {
     let fileUrl: URL
     let isFolder: Bool
     let isFramework: Bool
@@ -24,33 +24,33 @@ struct LCTweakItem : Hashable {
     static let disabledSuffix = ".disabled"
 }
 
-struct LCTweakFolderView : View {
-    @State var baseUrl : URL
-    @State var tweakItems : [LCTweakItem]
-    private var isRoot : Bool
+struct LCTweakFolderView: View {
+    @State var baseUrl: URL
+    @State var tweakItems: [LCTweakItem]
+    private var isRoot: Bool
     @EnvironmentObject private var sharedModel: SharedModel
-    
+
     @State private var errorShow = false
     @State private var errorInfo = ""
-    
+
     @StateObject private var newFolderInput = InputHelper()
-    
+
     @StateObject private var renameFileInput = InputHelper()
-    
+
     @State private var choosingTweak = false
-    
+
     @State private var isTweakSigning = false
-    
+
     init(baseUrl: URL, isRoot: Bool = false) {
         _baseUrl = State(initialValue: baseUrl)
         self.isRoot = isRoot
-        var tmpTweakItems : [LCTweakItem] = []
+        var tmpTweakItems: [LCTweakItem] = []
         let fm = FileManager()
         do {
             let files = try fm.contentsOfDirectory(atPath: baseUrl.path)
             for fileName in files {
                 let fileUrl = baseUrl.appendingPathComponent(fileName)
-                var isFolder : ObjCBool = false
+                var isFolder: ObjCBool = false
                 fm.fileExists(atPath: fileUrl.path, isDirectory: &isFolder)
                 let isEnabled = !fileName.hasSuffix(LCTweakItem.disabledSuffix)
                 let baseName = isEnabled ? fileName : String(fileName.dropLast(LCTweakItem.disabledSuffix.count))
@@ -70,7 +70,7 @@ struct LCTweakFolderView : View {
     var body: some View {
         List {
             Section {
-                ForEach(tweakItems, id:\.self) { tweakItem in
+                ForEach(tweakItems, id: \.self) { tweakItem in
                     HStack {
                         Group {
                             if tweakItem.isFolder && !tweakItem.isFramework {
@@ -103,16 +103,19 @@ struct LCTweakFolderView : View {
                         }
                         .opacity(tweakItem.isEnabled ? 1 : 0.4)
                         if tweakItem.displayName != "TweakLoader.dylib" {
-                            Toggle("", isOn: Binding(
-                                get: { tweakItem.isEnabled },
-                                set: { setTweakEnabled(tweakItem: tweakItem, enabled: $0) }
-                            ))
+                            Toggle(
+                                "",
+                                isOn: Binding(
+                                    get: { tweakItem.isEnabled },
+                                    set: { setTweakEnabled(tweakItem: tweakItem, enabled: $0) }
+                                )
+                            )
                             .labelsHidden()
                         }
                     }
                     .contextMenu {
                         Button {
-                            Task { await renameTweakItem(tweakItem: tweakItem)}
+                            Task { await renameTweakItem(tweakItem: tweakItem) }
                         } label: {
                             Label("lc.common.rename".loc, systemImage: "pencil")
                         }
@@ -157,16 +160,18 @@ struct LCTweakFolderView : View {
                         Button {
                             if choosingTweak {
                                 choosingTweak = false
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
-                                    choosingTweak = true
-                                })
+                                DispatchQueue.main.asyncAfter(
+                                    deadline: .now() + 0.1,
+                                    execute: {
+                                        choosingTweak = true
+                                    })
                             } else {
                                 choosingTweak = true
                             }
                         } label: {
                             Label("lc.tweakView.importTweak".loc, systemImage: "square.and.arrow.down")
                         }
-                        
+
                         Button {
                             Task { await createNewFolder() }
                         } label: {
@@ -182,8 +187,10 @@ struct LCTweakFolderView : View {
             }
         }
         .alert("lc.common.error".loc, isPresented: $errorShow) {
-            Button("lc.common.ok".loc, action: {
-            })
+            Button(
+                "lc.common.ok".loc,
+                action: {
+                })
         } message: {
             Text(errorInfo)
         }
@@ -195,7 +202,7 @@ struct LCTweakFolderView : View {
             action: { newText in
                 newFolderInput.close(result: newText)
             },
-            actionCancel: {_ in
+            actionCancel: { _ in
                 newFolderInput.close(result: "")
             }
         )
@@ -207,17 +214,20 @@ struct LCTweakFolderView : View {
             action: { newText in
                 renameFileInput.close(result: newText)
             },
-            actionCancel: {_ in
+            actionCancel: { _ in
                 renameFileInput.close(result: "")
             }
         )
-        .betterFileImporter(isPresented: $choosingTweak, types: [.dylib, .lcFramework, /*.deb*/], multiple: true, callback: { fileUrls in
-            Task { await startInstallTweak(fileUrls) }
-        }, onDismiss: {
-            choosingTweak = false
-        })
+        .betterFileImporter(
+            isPresented: $choosingTweak, types: [.dylib, .lcFramework /*.deb*/], multiple: true,
+            callback: { fileUrls in
+                Task { await startInstallTweak(fileUrls) }
+            },
+            onDismiss: {
+                choosingTweak = false
+            })
     }
-    
+
     func setTweakEnabled(tweakItem: LCTweakItem, enabled: Bool) {
         if tweakItem.isEnabled == enabled {
             return
@@ -240,7 +250,7 @@ struct LCTweakFolderView : View {
     }
 
     func deleteTweakItem(indexSet: IndexSet) {
-        var indexToRemove : [Int] = []
+        var indexToRemove: [Int] = []
         let fm = FileManager()
         do {
             for i in indexSet {
@@ -265,7 +275,7 @@ struct LCTweakFolderView : View {
     }
 
     func deleteTweakItem(tweakItem: LCTweakItem) {
-        var indexToRemove : Int?
+        var indexToRemove: Int?
         let fm = FileManager()
         do {
 
@@ -289,7 +299,7 @@ struct LCTweakFolderView : View {
             })
         }
     }
-    
+
     func renameTweakItem(tweakItem: LCTweakItem) async {
         guard let newName = await renameFileInput.open(initVal: tweakItem.displayName), newName != "" else {
             return
@@ -326,13 +336,13 @@ struct LCTweakFolderView : View {
 
         }
     }
-    
+
     func signAllTweaks() async {
         do {
             defer {
                 isTweakSigning = false
             }
-            
+
             try await LCUtils.signTweaks(tweakFolderUrl: self.baseUrl, force: true, recursive: !isRoot) { p in
                 isTweakSigning = true
             }
@@ -343,7 +353,7 @@ struct LCTweakFolderView : View {
             return
         }
     }
-    
+
     func createNewFolder() async {
         guard let newName = await renameFileInput.open(), newName != "" else {
             return
@@ -362,21 +372,21 @@ struct LCTweakFolderView : View {
             sharedModel.tweakFolderNames.append(newName)
         }
     }
-    
+
     func startInstallTweak(_ urls: [URL]) async {
         do {
             let fm = FileManager()
             // we will sign later before app launch
-            
+
             for fileUrl in urls {
                 // handle deb file
-                if(!fileUrl.isFileURL) {
+                if !fileUrl.isFileURL {
                     throw "lc.tweakView.notFileError %@".localizeWithFormat(fileUrl.lastPathComponent)
                 }
                 let toPath = self.baseUrl.appendingPathComponent(fileUrl.lastPathComponent)
                 try fm.moveItem(at: fileUrl, to: toPath)
                 LCParseMachO((toPath.path as NSString).utf8String, false) { path, header, _, _ in
-                    LCPatchAddRPath(path, header);
+                    LCPatchAddRPath(path, header)
                 }
 
                 let isFramework = toPath.lastPathComponent.hasSuffix(".framework")
@@ -385,7 +395,7 @@ struct LCTweakFolderView : View {
             }
         } catch {
             errorInfo = error.localizedDescription
-            errorShow = true            
+            errorShow = true
             return
         }
     }

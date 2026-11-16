@@ -43,7 +43,7 @@
         file references on the volume associated with the specified
         path should be returned.
  */
-#define PROC_LISTPIDSPATH_PATH_IS_VOLUME    1
+#define PROC_LISTPIDSPATH_PATH_IS_VOLUME 1
 
 
 /*!
@@ -52,7 +52,7 @@
         with the O_EVTONLY flag should be excluded from the matching
         criteria.
  */
-#define PROC_LISTPIDSPATH_EXCLUDE_EVTONLY    2
+#define PROC_LISTPIDSPATH_EXCLUDE_EVTONLY 2
 
 __BEGIN_DECLS
 
@@ -77,28 +77,28 @@ int proc_listpids(uint32_t type, uint32_t typeinfo, void *buffer, int buffersize
     @result the number of bytes of data returned in the provided buffer;
         -1 if an error was encountered;
  */
-int    proc_listpidspath(uint32_t    type,
-              uint32_t    typeinfo,
-              const char    *path,
-              uint32_t    pathflags,
-              void        *buffer,
-              int        buffersize);
+int proc_listpidspath(uint32_t type,
+                      uint32_t typeinfo,
+                      const char *path,
+                      uint32_t pathflags,
+                      void *buffer,
+                      int buffersize);
 
-int proc_pidinfo(int pid, int flavor, uint64_t arg,  void *buffer, int buffersize);
-int proc_pidfdinfo(int pid, int fd, int flavor, void * buffer, int buffersize);
-int proc_name(int pid, void * buffer, uint32_t buffersize);
-int proc_regionfilename(int pid, uint64_t address, void * buffer, uint32_t buffersize);
-int proc_kmsgbuf(void * buffer, uint32_t buffersize);
-int proc_pidpath(int pid, void * buffer, uint32_t  buffersize);
-int proc_libversion(int *major, int * minor);
+int proc_pidinfo(int pid, int flavor, uint64_t arg, void *buffer, int buffersize);
+int proc_pidfdinfo(int pid, int fd, int flavor, void *buffer, int buffersize);
+int proc_name(int pid, void *buffer, uint32_t buffersize);
+int proc_regionfilename(int pid, uint64_t address, void *buffer, uint32_t buffersize);
+int proc_kmsgbuf(void *buffer, uint32_t buffersize);
+int proc_pidpath(int pid, void *buffer, uint32_t buffersize);
+int proc_libversion(int *major, int *minor);
 /*
  * A process can use the following api to set its own process control
  * state on resoure starvation. The argument can have one of the PROC_SETPC_XX values
  */
-#define PROC_SETPC_NONE        0
-#define PROC_SETPC_THROTTLEMEM    1
-#define PROC_SETPC_SUSPEND    2
-#define PROC_SETPC_TERMINATE    3
+#define PROC_SETPC_NONE 0
+#define PROC_SETPC_THROTTLEMEM 1
+#define PROC_SETPC_SUSPEND 2
+#define PROC_SETPC_TERMINATE 3
 
 int proc_setpcontrol(const int control);
 __END_DECLS

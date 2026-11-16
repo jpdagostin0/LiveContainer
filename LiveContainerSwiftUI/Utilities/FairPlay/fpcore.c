@@ -35,7 +35,10 @@ static int raw_mremap_encrypted(void *addr, size_t len, uint32_t cryptid, uint32
                      : "+r"(x0), "+r"(x1), [f] "=r"(failed)
                      : "r"(x2), "r"(x3), "r"(x4), "r"(x16)
                      : "memory", "cc");
-    if (failed) { errno = (int)x0; return -1; }
+    if (failed) {
+        errno = (int)x0;
+        return -1;
+    }
     return (int)x0;
 #else
     errno = ENOTSUP;
@@ -46,7 +49,10 @@ static int raw_mremap_encrypted(void *addr, size_t len, uint32_t cryptid, uint32
 static int do_mremap_encrypted(void *addr, size_t len, uint32_t cryptid, uint32_t cputype, uint32_t cpusubtype) {
     static mremap_encrypted_fn fn;
     static int resolved;
-    if (!resolved) { fn = (mremap_encrypted_fn)dlsym(RTLD_DEFAULT, "mremap_encrypted"); resolved = 1; }
+    if (!resolved) {
+        fn = (mremap_encrypted_fn)dlsym(RTLD_DEFAULT, "mremap_encrypted");
+        resolved = 1;
+    }
     if (fn) return fn(addr, len, cryptid, cputype, cpusubtype);
     return raw_mremap_encrypted(addr, len, cryptid, cputype, cpusubtype);
 }
@@ -56,12 +62,19 @@ static int do_mremap_encrypted(void *addr, size_t len, uint32_t cryptid, uint32_
 static void logf_(fp_log_t log, void *ctx, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
 static void logf_(fp_log_t log, void *ctx, const char *fmt, ...) {
     char buf[2048];
-    va_list ap; va_start(ap, fmt); vsnprintf(buf, sizeof buf, fmt, ap); va_end(ap);
-    if (log) log(ctx, buf); else fprintf(stderr, "%s\n", buf);
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof buf, fmt, ap);
+    va_end(ap);
+    if (log)
+        log(ctx, buf);
+    else
+        fprintf(stderr, "%s\n", buf);
 }
 
 static double now_ms(void) {
-    struct timespec ts; clock_gettime(CLOCK_MONOTONIC, &ts);
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1e6;
 }
 
@@ -70,14 +83,19 @@ static double entropy(const uint8_t *p, size_t n) {
     uint64_t h[256] = {0};
     for (size_t i = 0; i < n; i++) h[p[i]]++;
     double e = 0;
-    for (int i = 0; i < 256; i++) if (h[i]) { double q = (double)h[i] / n; e -= q * log2(q); }
+    for (int i = 0; i < 256; i++)
+        if (h[i]) {
+            double q = (double)h[i] / n;
+            e -= q * log2(q);
+        }
     return e;
 }
 
 static uint32_t code_words(const uint8_t *p, size_t n) {
     uint32_t c = 0;
     for (size_t i = 0; i + 4 <= n; i += 4) {
-        uint32_t w; memcpy(&w, p + i, 4);
+        uint32_t w;
+        memcpy(&w, p + i, 4);
         if (w == 0xd65f03c0 /* ret */ || w == 0xd503237f /* pacibsp */ || w == 0xd65f0fff /* retab */) c++;
     }
     return c;
@@ -87,8 +105,13 @@ static bool pread_full(int fd, void *buf, size_t n, off_t off) {
     uint8_t *p = buf;
     while (n) {
         ssize_t r = pread(fd, p, n, off);
-        if (r <= 0) { if (r < 0 && errno == EINTR) continue; return false; }
-        p += r; n -= r; off += r;
+        if (r <= 0) {
+            if (r < 0 && errno == EINTR) continue;
+            return false;
+        }
+        p += r;
+        n -= r;
+        off += r;
     }
     return true;
 }
@@ -97,17 +120,22 @@ static bool pwrite_full(int fd, const void *buf, size_t n, off_t off) {
     const uint8_t *p = buf;
     while (n) {
         ssize_t r = pwrite(fd, p, n, off);
-        if (r <= 0) { if (r < 0 && errno == EINTR) continue; return false; }
-        p += r; n -= r; off += r;
+        if (r <= 0) {
+            if (r < 0 && errno == EINTR) continue;
+            return false;
+        }
+        p += r;
+        n -= r;
+        off += r;
     }
     return true;
 }
 
 const char *fp_mode_name(int mode) {
     switch (mode) {
-        case FP_MODE_R_CID2:  return "R/cryptid2";
+        case FP_MODE_R_CID2: return "R/cryptid2";
         case FP_MODE_RX_CID1: return "RX/cryptid1";
-        case FP_MODE_R_CID1:  return "R/cryptid1";
+        case FP_MODE_R_CID1: return "R/cryptid1";
     }
     return "?";
 }
@@ -126,14 +154,30 @@ bool fp_is_macho(const char *path) {
 
 static int parse_thin(int fd, uint64_t off, uint64_t size, fp_slice_t *s, char *err, size_t errlen) {
     struct mach_header_64 mh;
-    if (!pread_full(fd, &mh, sizeof mh, off)) { snprintf(err, errlen, "short read (header)"); return -1; }
-    if (mh.magic != MH_MAGIC_64) { snprintf(err, errlen, "unsupported magic 0x%x", mh.magic); return -1; }
+    if (!pread_full(fd, &mh, sizeof mh, off)) {
+        snprintf(err, errlen, "short read (header)");
+        return -1;
+    }
+    if (mh.magic != MH_MAGIC_64) {
+        snprintf(err, errlen, "unsupported magic 0x%x", mh.magic);
+        return -1;
+    }
     memset(s, 0, sizeof *s);
-    s->slice_off = off; s->slice_size = size;
-    s->cputype = mh.cputype; s->cpusubtype = mh.cpusubtype; s->filetype = mh.filetype;
-    if (mh.sizeofcmds > 16 * 1024 * 1024) { snprintf(err, errlen, "sizeofcmds too large"); return -1; }
+    s->slice_off = off;
+    s->slice_size = size;
+    s->cputype = mh.cputype;
+    s->cpusubtype = mh.cpusubtype;
+    s->filetype = mh.filetype;
+    if (mh.sizeofcmds > 16 * 1024 * 1024) {
+        snprintf(err, errlen, "sizeofcmds too large");
+        return -1;
+    }
     uint8_t *cmds = malloc(mh.sizeofcmds);
-    if (!cmds || !pread_full(fd, cmds, mh.sizeofcmds, off + sizeof mh)) { free(cmds); snprintf(err, errlen, "short read (cmds)"); return -1; }
+    if (!cmds || !pread_full(fd, cmds, mh.sizeofcmds, off + sizeof mh)) {
+        free(cmds);
+        snprintf(err, errlen, "short read (cmds)");
+        return -1;
+    }
     uint32_t pos = 0;
     for (uint32_t i = 0; i < mh.ncmds && pos + 8 <= mh.sizeofcmds; i++) {
         struct load_command *lc = (struct load_command *)(cmds + pos);
@@ -142,10 +186,13 @@ static int parse_thin(int fd, uint64_t off, uint64_t size, fp_slice_t *s, char *
             struct encryption_info_command *e = (void *)lc;
             s->has_enc = true;
             s->enc_lc_off = off + sizeof mh + pos;
-            s->cryptoff = e->cryptoff; s->cryptsize = e->cryptsize; s->cryptid = e->cryptid;
+            s->cryptoff = e->cryptoff;
+            s->cryptsize = e->cryptsize;
+            s->cryptid = e->cryptid;
         } else if (lc->cmd == LC_CODE_SIGNATURE) {
             struct linkedit_data_command *l = (void *)lc;
-            s->cs_off = l->dataoff; s->cs_size = l->datasize;
+            s->cs_off = l->dataoff;
+            s->cs_size = l->datasize;
         }
         pos += lc->cmdsize;
     }
@@ -156,24 +203,42 @@ static int parse_thin(int fd, uint64_t off, uint64_t size, fp_slice_t *s, char *
 int fp_parse(const char *path, fp_slice_t *slices, int max, int *count, char *err, size_t errlen) {
     *count = 0;
     int fd = open(path, O_RDONLY);
-    if (fd < 0) { snprintf(err, errlen, "open: %s", strerror(errno)); return -1; }
-    struct stat st; fstat(fd, &st);
+    if (fd < 0) {
+        snprintf(err, errlen, "open: %s", strerror(errno));
+        return -1;
+    }
+    struct stat st;
+    fstat(fd, &st);
     uint32_t magic = 0;
-    if (!pread_full(fd, &magic, 4, 0)) { close(fd); snprintf(err, errlen, "short read"); return -1; }
+    if (!pread_full(fd, &magic, 4, 0)) {
+        close(fd);
+        snprintf(err, errlen, "short read");
+        return -1;
+    }
     int rc = 0;
     if (magic == FAT_CIGAM || magic == FAT_CIGAM_64) {
         bool is64 = magic == FAT_CIGAM_64;
-        struct fat_header fh; pread_full(fd, &fh, sizeof fh, 0);
+        struct fat_header fh;
+        pread_full(fd, &fh, sizeof fh, 0);
         uint32_t n = OSSwapBigToHostInt32(fh.nfat_arch);
         uint64_t p = sizeof fh;
         for (uint32_t i = 0; i < n && *count < max; i++) {
-            uint64_t o, sz; uint32_t ct;
+            uint64_t o, sz;
+            uint32_t ct;
             if (is64) {
-                struct fat_arch_64 fa; if (!pread_full(fd, &fa, sizeof fa, p)) break; p += sizeof fa;
-                o = OSSwapBigToHostInt64(fa.offset); sz = OSSwapBigToHostInt64(fa.size); ct = OSSwapBigToHostInt32(fa.cputype);
+                struct fat_arch_64 fa;
+                if (!pread_full(fd, &fa, sizeof fa, p)) break;
+                p += sizeof fa;
+                o = OSSwapBigToHostInt64(fa.offset);
+                sz = OSSwapBigToHostInt64(fa.size);
+                ct = OSSwapBigToHostInt32(fa.cputype);
             } else {
-                struct fat_arch fa; if (!pread_full(fd, &fa, sizeof fa, p)) break; p += sizeof fa;
-                o = OSSwapBigToHostInt32(fa.offset); sz = OSSwapBigToHostInt32(fa.size); ct = OSSwapBigToHostInt32(fa.cputype);
+                struct fat_arch fa;
+                if (!pread_full(fd, &fa, sizeof fa, p)) break;
+                p += sizeof fa;
+                o = OSSwapBigToHostInt32(fa.offset);
+                sz = OSSwapBigToHostInt32(fa.size);
+                ct = OSSwapBigToHostInt32(fa.cputype);
             }
             if (!(ct & CPU_ARCH_ABI64)) continue; // 32-bit slices are irrelevant on arm64-only devices
             char e2[128];
@@ -194,30 +259,51 @@ int fp_parse(const char *path, fp_slice_t *slices, int max, int *count, char *er
 
 int fp_attempt(const char *path, const fp_slice_t *s, int mode, bool addsigs, uint8_t *out, fp_attempt_t *res) {
     memset(res, 0, sizeof *res);
-    res->mode = mode; res->addsigs = addsigs; res->mremap_ret = -1;
+    res->mode = mode;
+    res->addsigs = addsigs;
+    res->mremap_ret = -1;
     double t0 = now_ms();
     const uint64_t pg = (uint64_t)getpagesize();
     if (!s->has_enc || s->cryptsize == 0) return -1;
-    if (s->slice_off % pg) { res->mmap_errno = EINVAL; return -1; }
-    if (s->cryptoff % pg) { res->mremap_errno = EINVAL; return -1; }
+    if (s->slice_off % pg) {
+        res->mmap_errno = EINVAL;
+        return -1;
+    }
+    if (s->cryptoff % pg) {
+        res->mremap_errno = EINVAL;
+        return -1;
+    }
 
     int fd = open(path, O_RDONLY);
-    if (fd < 0) { res->mmap_errno = errno; return -1; }
+    if (fd < 0) {
+        res->mmap_errno = errno;
+        return -1;
+    }
 
     if (addsigs && s->cs_size) {
-        fsignatures_t fs = { .fs_file_start = (off_t)s->slice_off, .fs_blob_start = (void *)(uintptr_t)s->cs_off, .fs_blob_size = s->cs_size };
+        fsignatures_t fs = {.fs_file_start = (off_t)s->slice_off, .fs_blob_start = (void *)(uintptr_t)s->cs_off, .fs_blob_size = s->cs_size};
         if (fcntl(fd, F_ADDFILESIGS_RETURN, &fs) == -1) res->sig_errno = errno;
     }
 
     uint64_t map_len = ((uint64_t)s->cryptoff + s->cryptsize + pg - 1) & ~(pg - 1);
     int prot = PROT_READ | (mode == FP_MODE_RX_CID1 ? PROT_EXEC : 0);
     uint8_t *base = mmap(NULL, map_len, prot, MAP_PRIVATE, fd, (off_t)s->slice_off);
-    if (base == MAP_FAILED) { res->mmap_errno = errno; close(fd); res->ms = now_ms() - t0; return -1; }
+    if (base == MAP_FAILED) {
+        res->mmap_errno = errno;
+        close(fd);
+        res->ms = now_ms() - t0;
+        return -1;
+    }
 
     uint8_t *orig = malloc(s->cryptsize);
     uint8_t *dec = out ? out : malloc(s->cryptsize);
     if (!orig || !dec || !pread_full(fd, orig, s->cryptsize, (off_t)(s->slice_off + s->cryptoff))) {
-        free(orig); if (!out) free(dec); munmap(base, map_len); close(fd); res->mmap_errno = EIO; return -1;
+        free(orig);
+        if (!out) free(dec);
+        munmap(base, map_len);
+        close(fd);
+        res->mmap_errno = EIO;
+        return -1;
     }
 
     uint32_t cid = (mode == FP_MODE_R_CID2) ? 2 : 1;
@@ -239,7 +325,10 @@ int fp_attempt(const char *path, const fp_slice_t *s, int mode, bool addsigs, ui
             if (kr == KERN_SUCCESS && got == n) {
                 res->pages_ok++;
             } else {
-                if (!res->first_fail_kr) { res->first_fail_kr = kr ? kr : -1; res->first_fail_off = s->cryptoff + off; }
+                if (!res->first_fail_kr) {
+                    res->first_fail_kr = kr ? kr : -1;
+                    res->first_fail_off = s->cryptoff + off;
+                }
                 memset(dec + off, 0, n);
             }
         }
@@ -275,12 +364,17 @@ static bool attempt_looks_decrypted(const fp_attempt_t *a) {
     // Encrypted text has ~8.0 bits/byte regardless of size; decrypted arm64 code stays below 7.5.
     // Require only one new RET/PACIBSP word so tiny (1-page) binaries are not rejected.
     return a->mremap_ret == 0 && a->pages_ok == a->pages_total && a->changed &&
-           a->ent_before > 7.9 && a->ent_after < 7.5 && a->ret_after > a->ret_before;
+        a->ent_before > 7.9 && a->ent_after < 7.5 && a->ret_after > a->ret_before;
 }
 
 int fp_probe_file(const char *path, const int *modes, int nmodes, fp_log_t log, void *ctx) {
-    fp_slice_t sl[FP_MAX_SLICES]; int n = 0; char err[256] = {0};
-    if (fp_parse(path, sl, FP_MAX_SLICES, &n, err, sizeof err) != 0) { logf_(log, ctx, "  parse failed: %s", err); return -1; }
+    fp_slice_t sl[FP_MAX_SLICES];
+    int n = 0;
+    char err[256] = {0};
+    if (fp_parse(path, sl, FP_MAX_SLICES, &n, err, sizeof err) != 0) {
+        logf_(log, ctx, "  parse failed: %s", err);
+        return -1;
+    }
     int successes = 0;
     for (int i = 0; i < n; i++) {
         const fp_slice_t *s = &sl[i];
@@ -290,7 +384,8 @@ int fp_probe_file(const char *path, const int *modes, int nmodes, fp_log_t log, 
         if (!s->has_enc || s->cryptid == 0) continue;
         for (int m = 0; m < nmodes; m++) {
             for (int sig = 0; sig < 2; sig++) {
-                fp_attempt_t a; char d[512];
+                fp_attempt_t a;
+                char d[512];
                 fp_attempt(path, s, modes[m], sig, NULL, &a);
                 fp_attempt_describe(&a, d, sizeof d);
                 bool ok = attempt_looks_decrypted(&a);
@@ -307,28 +402,51 @@ int fp_probe_file(const char *path, const int *modes, int nmodes, fp_log_t log, 
 static int copy_file(const char *src, const char *dst) {
     int in = open(src, O_RDONLY);
     if (in < 0) return -1;
-    struct stat st; fstat(in, &st);
+    struct stat st;
+    fstat(in, &st);
     int out = open(dst, O_WRONLY | O_CREAT | O_TRUNC, (st.st_mode & 0777) | 0600);
-    if (out < 0) { close(in); return -1; }
+    if (out < 0) {
+        close(in);
+        return -1;
+    }
     uint8_t *buf = malloc(1 << 20);
-    ssize_t r; int rc = 0;
-    while ((r = read(in, buf, 1 << 20)) > 0) if (write(out, buf, (size_t)r) != r) { rc = -1; break; }
+    ssize_t r;
+    int rc = 0;
+    while ((r = read(in, buf, 1 << 20)) > 0)
+        if (write(out, buf, (size_t)r) != r) {
+            rc = -1;
+            break;
+        }
     if (r < 0) rc = -1;
-    free(buf); close(in); close(out);
+    free(buf);
+    close(in);
+    close(out);
     return rc;
 }
 
 int fp_decrypt_file(const char *in_path, const char *out_path, fp_log_t log, void *ctx) {
-    fp_slice_t sl[FP_MAX_SLICES]; int n = 0; char err[256] = {0};
-    if (fp_parse(in_path, sl, FP_MAX_SLICES, &n, err, sizeof err) != 0) { logf_(log, ctx, "  parse failed: %s", err); return -1; }
+    fp_slice_t sl[FP_MAX_SLICES];
+    int n = 0;
+    char err[256] = {0};
+    if (fp_parse(in_path, sl, FP_MAX_SLICES, &n, err, sizeof err) != 0) {
+        logf_(log, ctx, "  parse failed: %s", err);
+        return -1;
+    }
     bool any = false;
-    for (int i = 0; i < n; i++) if (sl[i].has_enc && sl[i].cryptid) any = true;
-    if (strcmp(in_path, out_path) != 0 && copy_file(in_path, out_path) != 0) { logf_(log, ctx, "  copy failed: %s", strerror(errno)); return -1; }
+    for (int i = 0; i < n; i++)
+        if (sl[i].has_enc && sl[i].cryptid) any = true;
+    if (strcmp(in_path, out_path) != 0 && copy_file(in_path, out_path) != 0) {
+        logf_(log, ctx, "  copy failed: %s", strerror(errno));
+        return -1;
+    }
     if (!any) return 1;
 
     int out = open(out_path, O_RDWR);
-    if (out < 0) { logf_(log, ctx, "  open out: %s", strerror(errno)); return -1; }
-    const int order[][2] = { {FP_MODE_R_CID2, 0}, {FP_MODE_R_CID2, 1}, {FP_MODE_RX_CID1, 0}, {FP_MODE_RX_CID1, 1} };
+    if (out < 0) {
+        logf_(log, ctx, "  open out: %s", strerror(errno));
+        return -1;
+    }
+    const int order[][2] = {{FP_MODE_R_CID2, 0}, {FP_MODE_R_CID2, 1}, {FP_MODE_RX_CID1, 0}, {FP_MODE_RX_CID1, 1}};
     int rc = 0;
     for (int i = 0; i < n && rc == 0; i++) {
         const fp_slice_t *s = &sl[i];
@@ -336,17 +454,23 @@ int fp_decrypt_file(const char *in_path, const char *out_path, fp_log_t log, voi
         uint8_t *dec = malloc(s->cryptsize);
         bool done = false;
         for (size_t k = 0; k < sizeof order / sizeof order[0] && !done; k++) {
-            fp_attempt_t a; char d[512];
+            fp_attempt_t a;
+            char d[512];
             fp_attempt(in_path, s, order[k][0], order[k][1], dec, &a);
             fp_attempt_describe(&a, d, sizeof d);
             done = attempt_looks_decrypted(&a);
             logf_(log, ctx, "  slice[%d] %s %s", i, done ? "[DECRYPTED]" : "[--]", d);
         }
-        if (!done) { rc = -1; free(dec); break; }
+        if (!done) {
+            rc = -1;
+            free(dec);
+            break;
+        }
         uint32_t zero = 0;
         if (!pwrite_full(out, dec, s->cryptsize, (off_t)(s->slice_off + s->cryptoff)) ||
             !pwrite_full(out, &zero, 4, (off_t)(s->enc_lc_off + offsetof(struct encryption_info_command, cryptid)))) {
-            logf_(log, ctx, "  write failed: %s", strerror(errno)); rc = -1;
+            logf_(log, ctx, "  write failed: %s", strerror(errno));
+            rc = -1;
         }
         free(dec);
     }

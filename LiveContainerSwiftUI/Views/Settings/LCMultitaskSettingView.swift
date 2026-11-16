@@ -19,11 +19,11 @@ struct LCMultitaskSettingView: View {
     @AppStorage("LCDockWidth", store: LCUtils.appGroupUserDefault) var dockWidth: Double = 80
     @AppStorage("LCHideCollapsedDock", store: LCUtils.appGroupUserDefault) var hideCollapsedDock: Bool = false
     @AppStorage("LCRedirectURLToHost", store: LCUtils.appGroupUserDefault) var redirectURLToHost = false
-    
+
     var body: some View {
         List {
             Section {
-                if(UIApplication.shared.supportsMultipleScenes) {
+                if UIApplication.shared.supportsMultipleScenes {
                     Picker(selection: $multitaskMode) {
                         Text("lc.settings.multitaskMode.virtualWindow".loc).tag(MultitaskMode.virtualWindow)
                         Text("lc.settings.multitaskMode.nativeWindow".loc).tag(MultitaskMode.nativeWindow)
@@ -34,7 +34,7 @@ struct LCMultitaskSettingView: View {
                 Toggle(isOn: $launchInMultitaskMode) {
                     Text("lc.settings.autoLaunchInMultitaskMode".loc)
                 }
-                
+
                 if multitaskMode == .virtualWindow {
                     Toggle(isOn: $launchMultitaskMaximized) {
                         Text("lc.settings.launchMultitaskMaximized".loc)
@@ -64,7 +64,7 @@ struct LCMultitaskSettingView: View {
 
                 }
             }
-            
+
             Section {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack {

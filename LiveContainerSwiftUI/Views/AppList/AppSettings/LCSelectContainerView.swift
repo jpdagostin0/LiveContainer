@@ -11,14 +11,14 @@ protocol LCSelectContainerViewDelegate {
     func addContainers(containers: Set<String>)
 }
 
-struct LCSelectContainerView : View{
+struct LCSelectContainerView: View {
     @State private var multiSelection = Set<String>()
-    @State private var unusedContainers : [LCContainer] = []
-    @Binding var isPresent : Bool
-    public var delegate : LCSelectContainerViewDelegate
+    @State private var unusedContainers: [LCContainer] = []
+    @Binding var isPresent: Bool
+    public var delegate: LCSelectContainerViewDelegate
 
-    @EnvironmentObject private var sharedModel : SharedModel
-    
+    @EnvironmentObject private var sharedModel: SharedModel
+
     var body: some View {
         NavigationView {
             List(selection: $multiSelection) {
@@ -43,7 +43,7 @@ struct LCSelectContainerView : View{
                         Text("lc.common.cancel".loc)
                     }
                 }
-                
+
                 ToolbarItem(placement: .confirmationAction) {
                     if multiSelection.count > 0 {
                         Button {
@@ -54,17 +54,17 @@ struct LCSelectContainerView : View{
                         }
                     }
                 }
-                
+
             }
             .navigationTitle(Text("lc.container.selectUnused".loc))
             .navigationBarTitleDisplayMode(.inline)
         }
-        .onAppear() {
+        .onAppear {
             loadUnusedContainers()
         }
-        
+
     }
-    
+
     func loadUnusedContainers() {
         // load document folders
         var appDataFolderNames: [String] = []
@@ -82,34 +82,34 @@ struct LCSelectContainerView : View{
                 appDataFolderNames.append(dataDir)
             }
         } catch {
-            
+
         }
 
-        
-        var folderNameToAppDict : [String:LCAppModel] = [:]
+
+        var folderNameToAppDict: [String: LCAppModel] = [:]
         for app in sharedModel.apps {
             for container in app.appInfo.containers {
-                folderNameToAppDict[container.folderName] = app;
+                folderNameToAppDict[container.folderName] = app
             }
         }
         for app in sharedModel.hiddenApps {
             for container in app.appInfo.containers {
-                folderNameToAppDict[container.folderName] = app;
+                folderNameToAppDict[container.folderName] = app
             }
         }
-        
-        var unusedFolders : [String]  = []
+
+        var unusedFolders: [String] = []
         for appDataFolderName in appDataFolderNames {
             if folderNameToAppDict[appDataFolderName] == nil {
                 unusedFolders.append(appDataFolderName)
             }
         }
-        
+
         unusedContainers = unusedFolders.map { folder in
             let ans = LCContainer(folderName: folder, name: folder, isShared: false)
             ans.loadName()
-            return ans;
+            return ans
         }
-        
+
     }
 }

@@ -24,25 +24,25 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface LCAppStoreSignerProbeResult : NSObject
 /// AppleMediaServices.framework was found and dlopen'd.
-@property (nonatomic) BOOL frameworkLoaded;
+@property(nonatomic) BOOL frameworkLoaded;
 /// Expected Objective-C classes that are present / absent in this process.
-@property (nonatomic, copy) NSArray<NSString *> *presentClasses;
-@property (nonatomic, copy) NSArray<NSString *> *missingClasses;
+@property(nonatomic, copy) NSArray<NSString *> *presentClasses;
+@property(nonatomic, copy) NSArray<NSString *> *missingClasses;
 /// +[AMSAnisette _headersForRequest:account:type:] returned a usable Store AMD proof.
-@property (nonatomic) BOOL anisetteProofProduced;
+@property(nonatomic) BOOL anisetteProofProduced;
 /// Header name -> byte length only (never the value) for any proof headers seen.
-@property (nonatomic, copy) NSDictionary<NSString *, NSNumber *> *anisetteHeaderLengths;
+@property(nonatomic, copy) NSDictionary<NSString *, NSNumber *> *anisetteHeaderLengths;
 /// AMSURLRequestEncoder could be instantiated (request-building capability present).
-@property (nonatomic) BOOL requestEncoderAvailable;
+@property(nonatomic) BOOL requestEncoderAvailable;
 /// Overall verdict: is native signing viable here?
-@property (nonatomic) BOOL nativeSigningViable;
+@property(nonatomic) BOOL nativeSigningViable;
 /// FairPlay IOKit probe: name of the first service that could be matched (nil = none found).
-@property (nonatomic, copy, nullable) NSString *fairPlayIOKitServiceName;
+@property(nonatomic, copy, nullable) NSString *fairPlayIOKitServiceName;
 /// kern_return_t from IOServiceOpen on the matched FairPlay service (0 = KERN_SUCCESS).
-@property (nonatomic) int fairPlayIOKitOpenResult;
+@property(nonatomic) int fairPlayIOKitOpenResult;
 /// One-line human summary and ordered diagnostic lines (safe to show to the user).
-@property (nonatomic, copy) NSString *summary;
-@property (nonatomic, copy) NSArray<NSString *> *diagnostics;
+@property(nonatomic, copy) NSString *summary;
+@property(nonatomic, copy) NSArray<NSString *> *diagnostics;
 @end
 
 @interface LCAppStoreSigner : NSObject

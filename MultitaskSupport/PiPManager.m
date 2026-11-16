@@ -10,20 +10,20 @@
 #include "../LiveContainer/utils.h"
 
 API_AVAILABLE(ios(16.0))
-@interface PiPManager()
+@interface PiPManager ()
 @property(nonatomic, strong) UIView *pipVideoCallContentView;
 @property(nonatomic, strong) AVPictureInPictureVideoCallViewController *pipVideoCallViewController;
 @property(nonatomic, strong) AVPictureInPictureController *pipController;
-@property(nonatomic) AppSceneViewController* displayingVC;
+@property(nonatomic) AppSceneViewController *displayingVC;
 @end
 
 
 @implementation PiPManager
 API_AVAILABLE(ios(16.0))
-static PiPManager* sharedInstance = nil;
+static PiPManager *sharedInstance = nil;
 
 + (instancetype)shared {
-    if(!sharedInstance)
+    if (!sharedInstance)
         sharedInstance = [[self alloc] init];
     return sharedInstance;
 }
@@ -36,24 +36,24 @@ static PiPManager* sharedInstance = nil;
     return self.pipController.isPictureInPictureActive;
 }
 
-- (BOOL)isPiPWithVC:(AppSceneViewController*)vc {
+- (BOOL)isPiPWithVC:(AppSceneViewController *)vc {
     return self.pipController.isPictureInPictureActive && self.displayingVC == vc;
 }
 
-- (BOOL)isPiPWithDecoratedVC:(UIViewController*)vc {
+- (BOOL)isPiPWithDecoratedVC:(UIViewController *)vc {
     return self.pipController.isPictureInPictureActive && self.displayingDecoratedVC == vc;
 }
 
 - (instancetype)init {
-    NSError* error = nil;
+    NSError *error = nil;
     [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error:&error];
     [[AVAudioSession sharedInstance] setActive:YES withOptions:1 error:&error];
     return self;
 }
 
-- (void)startPiPWithVC:(AppSceneViewController*)vc {
+- (void)startPiPWithVC:(AppSceneViewController *)vc {
     [self.pipController stopPictureInPicture];
-    if(self.displayingVC) {
+    if (self.displayingVC) {
         [self.displayingDecoratedVC unminimizeWindowPiP];
         [self pictureInPictureControllerDidStopPictureInPicture:self.pipController];
     }
@@ -61,7 +61,7 @@ static PiPManager* sharedInstance = nil;
         self.displayingVC = vc;
         self.pipVideoCallViewController = [AVPictureInPictureVideoCallViewController new];
         self.pipVideoCallViewController.preferredContentSize = vc.view.bounds.size;
-        if(vc.usesHostingControllerAPI) {
+        if (vc.usesHostingControllerAPI) {
             self.pipVideoCallContentView = [[UIView alloc] initWithFrame:self.pipVideoCallViewController.view.bounds];
             //self.pipVideoCallContentView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             self.pipVideoCallContentView.layer.anchorPoint = CGPointMake(0, 0);
@@ -70,7 +70,7 @@ static PiPManager* sharedInstance = nil;
         } else {
             self.pipVideoCallContentView = vc.contentView;
         }
-        AVPictureInPictureControllerContentSource* contentSource =  [[AVPictureInPictureControllerContentSource alloc] initWithActiveVideoCallSourceView:vc.view contentViewController:self.pipVideoCallViewController];
+        AVPictureInPictureControllerContentSource *contentSource = [[AVPictureInPictureControllerContentSource alloc] initWithActiveVideoCallSourceView:vc.view contentViewController:self.pipVideoCallViewController];
         self.pipController = [[AVPictureInPictureController alloc] initWithContentSource:contentSource];
         self.pipController.canStartPictureInPictureAutomaticallyFromInline = YES;
         self.pipController.delegate = self;
@@ -79,7 +79,6 @@ static PiPManager* sharedInstance = nil;
             [self.pipController startPictureInPicture];
         });
     });
-
 }
 
 - (void)stopPiP {
@@ -89,7 +88,7 @@ static PiPManager* sharedInstance = nil;
 // PIP delegate
 - (void)pictureInPictureControllerWillStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
     [self.displayingDecoratedVC minimizeWindowPiP];
-    if(self.displayingVC.usesHostingControllerAPI) {
+    if (self.displayingVC.usesHostingControllerAPI) {
         self.pipVideoCallContentView.frame = CGRectMake(0, 0, self.displayingVC.view.bounds.size.width, self.displayingVC.view.bounds.size.height);
         self.pipVideoCallViewController.additionalSafeAreaInsets = self.displayingVC.view.safeAreaInsets;
         [self.pipVideoCallContentView addSubview:self.displayingVC.contentView];
@@ -98,18 +97,16 @@ static PiPManager* sharedInstance = nil;
     }
     [self.pipVideoCallViewController.view addSubview:self.pipVideoCallContentView];
     [self.pipVideoCallViewController.view.layer addObserver:self
-                                forKeyPath:@"bounds"
-                                   options:NSKeyValueObservingOptionNew
-                                   context:NULL];
+                                                 forKeyPath:@"bounds"
+                                                    options:NSKeyValueObservingOptionNew
+                                                    context:NULL];
     self.pipVideoCallViewController.preferredContentSize = self.displayingVC.view.bounds.size;
     [self.displayingVC setBackgroundNotificationEnabled:false];
     self.displayingVC.shouldIgnoreSceneUpdates = YES;
 }
 
 
-
 - (void)pictureInPictureControllerDidStartPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
-    
 }
 
 - (void)pictureInPictureControllerWillStopPictureInPicture:(AVPictureInPictureController *)pictureInPictureController {
@@ -122,9 +119,9 @@ static PiPManager* sharedInstance = nil;
     [self.displayingVC setBackgroundNotificationEnabled:true];
     // resize if needed (eg orientation differs)
     [self.displayingDecoratedVC updateVerticalConstraints];
-    
+
     self.pipVideoCallContentView.transform = CGAffineTransformIdentity;
-    if([NSUserDefaults.lcSharedDefaults boolForKey:@"LCAutoEndPiP"]) {
+    if ([NSUserDefaults.lcSharedDefaults boolForKey:@"LCAutoEndPiP"]) {
         self.pipController = nil;
         self.pipVideoCallViewController = nil;
     }
@@ -135,10 +132,10 @@ static PiPManager* sharedInstance = nil;
     NSLog(@"%@", error.description);
 }
 
-- (void)observeValueForKeyPath:(NSString*)keyPath ofObject:(NSObject*)object change:(NSDictionary<NSString *,id> *) change context:(void *) context {
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(NSObject *)object change:(NSDictionary<NSString *, id> *)change context:(void *)context {
     CGRect rect = [change[@"new"] CGRectValue];
     CGFloat scale = self.displayingVC.usesHostingControllerAPI ? self.displayingVC.scaleRatio : 1;
-    CGAffineTransform transform1 = CGAffineTransformScale(CGAffineTransformIdentity, rect.size.width / self.displayingVC.contentView.bounds.size.width/scale,rect.size.height /self.displayingVC.contentView.bounds.size.height/scale);
+    CGAffineTransform transform1 = CGAffineTransformScale(CGAffineTransformIdentity, rect.size.width / self.displayingVC.contentView.bounds.size.width / scale, rect.size.height / self.displayingVC.contentView.bounds.size.height / scale);
     self.pipVideoCallContentView.transform = transform1;
 }
 

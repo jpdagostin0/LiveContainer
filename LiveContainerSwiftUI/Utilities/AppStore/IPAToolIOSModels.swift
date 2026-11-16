@@ -109,11 +109,11 @@ enum IPAToolIOSError: LocalizedError, Equatable {
             return "The app could not be found in the App Store."
         case .noSignature:
             return "The App Store response did not contain a FairPlay SINF."
-        case let .downloadFailed(message):
+        case .downloadFailed(let message):
             return "The IPA download failed: \(message)"
-        case let .serverMessage(message):
+        case .serverMessage(let message):
             return message
-        case let .keychain(status):
+        case .keychain(let status):
             return "Keychain operation failed with status \(status)."
         }
     }

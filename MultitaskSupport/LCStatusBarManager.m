@@ -10,18 +10,18 @@
 
 @implementation LCStatusBarManager
 - (void)handleTapAction:(UIAction *)action {
-    if(self.nativeWindowViewController) {
+    if (self.nativeWindowViewController) {
         [self.nativeWindowViewController handleStatusBarTapAction:action];
         return;
     }
     BOOL handledByVirtualWindow = [MultitaskDockManager.shared.windowHostingView handleStatusBarTapAction:action];
-    if(!handledByVirtualWindow) {
+    if (!handledByVirtualWindow) {
         [super handleTapAction:action];
     }
 }
 @end
 
-@implementation UIApplication(LiveContainer)
+@implementation UIApplication (LiveContainer)
 + (Class)_statusBarManagerClass {
     if (@available(iOS 16.0, *)) {
         return LCStatusBarManager.class;

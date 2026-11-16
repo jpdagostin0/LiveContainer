@@ -23,13 +23,13 @@
 // Instance method to return a localized string
 - (NSString *)localized {
     NSString *message = [[NSUserDefaults lcMainBundle] localizedStringForKey:self value:@"" table:nil];
-    
+
     if (![message isEqualToString:self]) {
         return message;
     }
 
     NSString *forcedString = [[NSString enBundle] localizedStringForKey:self value:nil table:nil];
-    
+
     if (forcedString) {
         return forcedString;
     } else {
@@ -38,11 +38,11 @@
 }
 
 // Instance method for localization with format
-- (NSString *)localizeWithFormat:(NSString*)arg1, ... {
+- (NSString *)localizeWithFormat:(NSString *)arg1, ... {
     va_list args;
     va_start(args, arg1);
     NSString *formattedString = [NSString localizedStringWithFormat:[self localized], arg1, args];
-//    NSString *formattedString = [[NSString alloc] localized:[self localized] arguments:arg1, args];
+    //    NSString *formattedString = [[NSString alloc] localized:[self localized] arguments:arg1, args];
     va_end(args);
     return formattedString;
 }

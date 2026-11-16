@@ -14,7 +14,7 @@ static Class _LSOpenConfigurationClass;
 @implementation LCShareExtensionLauncher
 
 + (BOOL)openURLFromShareExtension:(NSURL *)url {
-    return [self openURLFromShareExtensionWithOptions:@{ @"url": url }];
+    return [self openURLFromShareExtensionWithOptions:@{@"url" : url}];
 }
 
 + (BOOL)openURLFromShareExtensionWithOptions:(NSDictionary *)options {
@@ -24,40 +24,40 @@ static Class _LSOpenConfigurationClass;
         return NO;
     }
 
-    LSApplicationWorkspace* workspace = [LSApplicationWorkspaceClass defaultWorkspace];
+    LSApplicationWorkspace *workspace = [LSApplicationWorkspaceClass defaultWorkspace];
 
-    NSString* bundleIdToLaunch = nil;
-    NSString* scheme = url.scheme;
-    if([scheme isEqualToString:@"livecontainer"] || [scheme isEqualToString:@"sidestore"]) {
+    NSString *bundleIdToLaunch = nil;
+    NSString *scheme = url.scheme;
+    if ([scheme isEqualToString:@"livecontainer"] || [scheme isEqualToString:@"sidestore"]) {
         bundleIdToLaunch = NSBundle.mainBundle.bundleIdentifier.stringByDeletingPathExtension;
     } else {
         bundleIdToLaunch = [NSUserDefaults.lcSharedDefaults stringForKey:[NSString stringWithFormat:@"LCBundleID.%@", scheme]];
     }
 
     __block BOOL success = NO;
-    if(scheme) {
+    if (scheme) {
         NSNumber *classicMode = options[@"classicMode"];
         if ([classicMode isKindOfClass:NSNumber.class] && classicMode.unsignedIntegerValue != 0) {
             _LSOpenConfiguration *classicConfig = [[_LSOpenConfigurationClass alloc] init];
             classicConfig.frontBoardOptions = @{
-                FBSOpenApplicationOptionKeyActivateAsClassic: classicMode
+                FBSOpenApplicationOptionKeyActivateAsClassic : classicMode
             };
             [workspace openApplicationWithBundleIdentifier:bundleIdToLaunch configuration:classicConfig completionHandler:nil];
         }
 
         _LSOpenConfiguration *config = [[_LSOpenConfigurationClass alloc] init];
         config.frontBoardOptions = @{
-            FBSOpenApplicationOptionKeyPayloadURL: url
+            FBSOpenApplicationOptionKeyPayloadURL : url
         };
         dispatch_semaphore_t sema = dispatch_semaphore_create(0);
 
-        [workspace openApplicationWithBundleIdentifier:bundleIdToLaunch usingConfiguration:config completionHandler:^(BOOL success1, NSError * err) {
+        [workspace openApplicationWithBundleIdentifier:bundleIdToLaunch usingConfiguration:config completionHandler:^(BOOL success1, NSError *err) {
             success = success1;
             dispatch_semaphore_signal(sema);
         }];
         dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER);
     }
-    if(!success) {
+    if (!success) {
         [workspace openURL:url];
     }
 
@@ -76,20 +76,19 @@ static Class _LSOpenConfigurationClass;
 
 @end
 
-NSBundle* lcMainBundle = nil;
-__attribute__((constructor))
-static void init(void) {
+NSBundle *lcMainBundle = nil;
+__attribute__((constructor)) static void init(void) {
     lcMainBundle = [NSBundle bundleWithURL:NSBundle.mainBundle.bundleURL.URLByDeletingLastPathComponent.URLByDeletingLastPathComponent];
     NSLog(@"%@", lcMainBundle);
 }
 
-@interface NSUserDefaults(ShareExtension)
-+ (NSBundle*)lcMainBundle;
+@interface NSUserDefaults (ShareExtension)
++ (NSBundle *)lcMainBundle;
 @end
 
-@implementation NSUserDefaults(ShareExtension)
+@implementation NSUserDefaults (ShareExtension)
 
-+ (NSBundle*)lcMainBundle {
++ (NSBundle *)lcMainBundle {
     return lcMainBundle;
 }
 

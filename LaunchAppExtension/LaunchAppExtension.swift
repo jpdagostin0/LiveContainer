@@ -19,7 +19,7 @@ struct LaunchAppExtension: AppIntent {
     static var description: IntentDescription { "This action directly launches an app in normal mode in LiveContainer. To get the launch URL, open LiveContainer, hold the app, tap \"Add to Home Screen\" -> \"Copy Launch URL\"" }
     @Parameter(title: "Launch URL")
     var launchURL: URL
-    
+
     static var bookmarkResolved = false
     static var ext: NSExtension? = nil
 
@@ -27,18 +27,19 @@ struct LaunchAppExtension: AppIntent {
         for scheme in schemes {
             // Check if the app is installed
             guard let url = URL(string: "\(scheme)://"),
-                  lsApplicationWorkspaceCanOpenURL(url) else {
+                lsApplicationWorkspaceCanOpenURL(url)
+            else {
                 continue
             }
-            
+
             // Check shared utility logic
             if isFree && LCSharedUtils.isLCScheme(inUse: scheme) {
                 continue
             }
-            
+
             var shouldBreak = false
             block(scheme, &shouldBreak)
-            
+
             if shouldBreak {
                 break
             }
@@ -47,13 +48,13 @@ struct LaunchAppExtension: AppIntent {
 
     func firstFreeInstalledLC(preferredScheme: String?) -> String? {
         var schemeToLaunch: String? = nil
-        
+
         var schemes = LCSharedUtils.lcUrlSchemes()!
         if let preferredScheme {
             schemes.removeAll { $0 == preferredScheme }
             schemes.insert(preferredScheme, at: 0)
         }
-        
+
         forEachInstalledLC(schemes: schemes, isFree: true) { scheme, stop in
             schemeToLaunch = scheme
             stop = true
@@ -62,43 +63,43 @@ struct LaunchAppExtension: AppIntent {
     }
 
     func openURL(launchOptions: [String: Any]) async throws {
-        var ext : NSExtension? = LaunchAppExtension.ext
+        var ext: NSExtension? = LaunchAppExtension.ext
         if ext == nil {
             do {
-                ext = try NSExtension(identifier: ((Bundle.main.bundleIdentifier! as NSString).deletingPathExtension as NSString).appendingPathExtension("ShareExtension") )
+                ext = try NSExtension(identifier: ((Bundle.main.bundleIdentifier! as NSString).deletingPathExtension as NSString).appendingPathExtension("ShareExtension"))
                 LaunchAppExtension.ext = ext
             } catch {
                 NSLog("Failed to start extension \(error)")
                 throw LaunchAppExtensionError("Failed to start extension \(error). To use the Launch App shortcut, reinstall LiveContainer with LaunchAppExtension and ShareExtension installed. If you use SideStore, choose \"Keep App Extensions (Use Main Profile)\". If you use Impactor, choose \"Only Register Main Bundle\". For other sideloaders, select keep all extensions, i.e. DO NOT Remove any extension.")
             }
-            
+
         }
         let extensionItem = NSExtensionItem()
         extensionItem.userInfo = launchOptions
         await ext?.beginRequest(withInputItems: [extensionItem])
     }
-    
+
     func perform() async throws -> some IntentResult {
         // sanitize url
         let normalizedLaunchScheme = launchURL.scheme?.lowercased()
         var isLiveContainerURL = normalizedLaunchScheme == "livecontainer"
         let preferredScheme = isLiveContainerURL ? nil : (normalizedLaunchScheme == "livecontainer1" ? "livecontainer" : normalizedLaunchScheme)
-        
+
         if let preferredScheme, let schemes = LCSharedUtils.lcUnorderedUrlSchemes() {
             isLiveContainerURL = schemes.contains(preferredScheme)
         }
-        
+
         if !isLiveContainerURL && normalizedLaunchScheme != "sidestore" {
             throw LaunchAppExtensionError("Not a livecontainer URL!")
         }
-        
+
         guard
             let appGroupId = LCSharedUtils.appGroupID(),
             let lcSharedDefaults = UserDefaults(suiteName: appGroupId)
         else {
             throw LaunchAppExtensionError("lcSharedDefaults failed to initialize, because no app group was found. Did you sign LiveContainer correctly?")
         }
-        
+
         if normalizedLaunchScheme == "sidestore" {
             lcSharedDefaults.set("livecontainer", forKey: "LCLaunchExtensionScheme")
             lcSharedDefaults.set("builtinSideStore", forKey: "LCLaunchExtensionBundleID")
@@ -106,7 +107,7 @@ struct LaunchAppExtension: AppIntent {
             try await openURL(launchOptions: ["url": launchURL])
             return .result()
         }
-        
+
         if launchURL.host != "livecontainer-launch" {
             throw LaunchAppExtensionError("Not a livecontainer launch URL!")
         }
@@ -117,7 +118,7 @@ struct LaunchAppExtension: AppIntent {
         guard var components = URLComponents(url: launchURL, resolvingAgainstBaseURL: false) else {
             throw LaunchAppExtensionError("URLComponents failed to initialize.")
         }
-        
+
         for queryItem in components.queryItems ?? [] {
             if queryItem.name == "bundle-name", let bundleId1 = queryItem.value {
                 bundleId = bundleId1
@@ -134,7 +135,7 @@ struct LaunchAppExtension: AppIntent {
         guard let bundleId else {
             throw LaunchAppExtensionError("No bundle-name parameter found.")
         }
-                
+
         // resolve private Documents bookmark
         if !LaunchAppExtension.bookmarkResolved, let bookmarkData = lcSharedDefaults.data(forKey: "LCLaunchExtensionPrivateDocBookmark") {
             var isStale = false
@@ -154,7 +155,7 @@ struct LaunchAppExtension: AppIntent {
             LaunchAppExtension.bookmarkResolved = true
 
         }
-        
+
         // launch app
         var isSharedApp = false
         let appBundle = LCSharedUtils.findBundle(withBundleId: bundleId, isSharedAppOut: &isSharedApp)
@@ -163,7 +164,7 @@ struct LaunchAppExtension: AppIntent {
             try await openURL(launchOptions: ["url": launchURL])
             return .result()
         }
-        
+
         // check if the app is locked/hidden/require JIT, if so we don't directly set keys in lcSharedDefaults
         let appInfoURL = appBundle.url(forResource: "LCAppInfo", withExtension: "plist")
         guard let appInfoURL else {
@@ -171,25 +172,25 @@ struct LaunchAppExtension: AppIntent {
         }
 
         let appInfo = try PropertyListSerialization.propertyList(from: try Data(contentsOf: appInfoURL), format: nil)
-        guard let appInfo = appInfo as? [String:Any] else {
+        guard let appInfo = appInfo as? [String: Any] else {
             throw LaunchAppExtensionError("Failed to load AppInfo!")
         }
         let isHiden = appInfo["isHidden"] as? Bool ?? false
         let isLocked = appInfo["isLocked"] as? Bool ?? false
         let isJITNeeded = appInfo["isJITNeeded"] as? Bool ?? false
-        
-        
+
+
         var schemeToLaunch: String? = nil
         // if containerName is not specified, use LCDataUUID as default
         if containerName == nil {
             containerName = appInfo["LCDataUUID"] as? String
         }
-        
+
         var newLaunch = false
         var allowClassicMode = false
         // if the container is running in a lc, use its scheme, otherwise find free one
         if var runningScheme = LCSharedUtils.getContainerUsingLCScheme(withFolderName: containerName) {
-            if(runningScheme.hasSuffix("liveprocess")) {
+            if runningScheme.hasSuffix("liveprocess") {
                 runningScheme = (runningScheme as NSString).deletingPathExtension
             }
             schemeToLaunch = runningScheme
@@ -210,7 +211,7 @@ struct LaunchAppExtension: AppIntent {
             try await openURL(launchOptions: ["url": launchURL])
             return .result()
         }
-        
+
         if newLaunch && !forceJIT && !isHiden && !isLocked && !isJITNeeded {
             lcSharedDefaults.set(schemeToLaunch, forKey: "LCLaunchExtensionScheme")
             lcSharedDefaults.set(bundleId, forKey: "LCLaunchExtensionBundleID")
@@ -225,7 +226,8 @@ struct LaunchAppExtension: AppIntent {
 
         var launchOptions: [String: Any] = ["url": newURL]
         if allowClassicMode {
-            let cachedClassicMode = (appInfo["classicMode"] as? Bool ?? false)
+            let cachedClassicMode =
+                (appInfo["classicMode"] as? Bool ?? false)
                 ? ((appInfo["LCClassicModeCache"] as? [String: Any])?["defaultClassicMode"] as? NSNumber)?.uintValue ?? 0
                 : 0
             launchOptions["classicMode"] = cachedClassicMode

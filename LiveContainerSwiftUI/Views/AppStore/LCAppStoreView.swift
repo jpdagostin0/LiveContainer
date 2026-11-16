@@ -67,9 +67,10 @@ final class LCAppStoreViewModel: ObservableObject {
             let code = verificationCode.isEmpty ? nil : verificationCode
             let signInEmail = email
             let signInPassword = password
-            account = try await service.authenticate(email: email,
-                                                     password: password,
-                                                     code: code)
+            account = try await service.authenticate(
+                email: email,
+                password: password,
+                code: code)
             needsTwoFactor = false
             verificationCode = ""
             password = ""
@@ -93,7 +94,8 @@ final class LCAppStoreViewModel: ObservableObject {
     /// and stores the resulting PKCS#12 as LiveContainer's zsign certificate.
     func provisionSigningCertificate(email: String, password: String, code: String?) async {
         guard let provisionerClass = NSClassFromString("LCCertificateProvisioner") as? NSObject.Type,
-              let provisioner = provisionerClass.init() as? LCCertificateProvisioning else {
+            let provisioner = provisionerClass.init() as? LCCertificateProvisioning
+        else {
             errorMessage = "Certificate provisioning requires the built-in SideStore (INCLUDE_SIDESTORE)."
             return
         }
@@ -151,8 +153,9 @@ final class LCAppStoreViewModel: ObservableObject {
         var lines: [String] = [result.summary]
         lines.append("")
         lines.append("AppleMediaServices: \(result.frameworkLoaded ? "loaded" : "not loadable")")
-        lines.append("Classes present: \(result.presentClasses.count)/"
-            + "\(result.presentClasses.count + result.missingClasses.count)")
+        lines.append(
+            "Classes present: \(result.presentClasses.count)/"
+                + "\(result.presentClasses.count + result.missingClasses.count)")
         if !result.missingClasses.isEmpty {
             lines.append("Missing: \(result.missingClasses.joined(separator: ", "))")
         }
@@ -160,7 +163,8 @@ final class LCAppStoreViewModel: ObservableObject {
         lines.append("Request encoder: \(result.requestEncoderAvailable ? "available" : "unavailable")")
         // FairPlay IOKit probe result
         if let svcName = result.fairPlayIOKitServiceName {
-            let openStatus = result.fairPlayIOKitOpenResult == 0
+            let openStatus =
+                result.fairPlayIOKitOpenResult == 0
                 ? "open succeeded"
                 : String(format: "open failed (0x%x)", UInt32(bitPattern: result.fairPlayIOKitOpenResult))
             lines.append("FairPlay IOKit (\(svcName)): \(openStatus)")
@@ -235,8 +239,10 @@ final class LCAppStoreViewModel: ObservableObject {
             statusText = "lc.appStore.status.decrypting".loc
 
             let decryptedURL = try await Task.detached(priority: .userInitiated) { [weak self] in
-                try LCFairPlayPipeline.decryptInstalledApp(at: app.bundleURL,
-                                                           outputURL: outputURL) { phase, completed, total in
+                try LCFairPlayPipeline.decryptInstalledApp(
+                    at: app.bundleURL,
+                    outputURL: outputURL
+                ) { phase, completed, total in
                     let fraction = total > 0 ? Double(completed) / Double(total) : 0
                     Task { @MainActor in
                         self?.statusText = Self.localizedFairPlayPhase(phase)
@@ -252,8 +258,9 @@ final class LCAppStoreViewModel: ObservableObject {
                 DataManager.shared.model.selectedTab = .apps
             }
             try? await Task.sleep(nanoseconds: 400_000_000)
-            NotificationCenter.default.post(name: NSNotification.InstallAppNotification,
-                                            object: ["url": decryptedURL])
+            NotificationCenter.default.post(
+                name: NSNotification.InstallAppNotification,
+                object: ["url": decryptedURL])
 
             Task.detached(priority: .utility) {
                 try? await Task.sleep(nanoseconds: 15 * 60 * 1_000_000_000)
@@ -310,11 +317,13 @@ final class LCAppStoreViewModel: ObservableObject {
             let metadataPlist = download.metadataPlist
 
             let outputURL = try await Task.detached(priority: .userInitiated) { [weak self] in
-                try LCFairPlayPipeline.decryptIPA(at: download.encryptedIPAURL,
-                                                  stagingRoots: stagingRoots,
-                                                  outputURL: decryptedURL,
-                                                  mainSinf: mainSinf,
-                                                  metadataPlist: metadataPlist) { phase, completed, total in
+                try LCFairPlayPipeline.decryptIPA(
+                    at: download.encryptedIPAURL,
+                    stagingRoots: stagingRoots,
+                    outputURL: decryptedURL,
+                    mainSinf: mainSinf,
+                    metadataPlist: metadataPlist
+                ) { phase, completed, total in
                     let fraction = total > 0 ? Double(completed) / Double(total) : 0
                     Task { @MainActor in
                         self?.statusText = Self.localizedFairPlayPhase(phase)
@@ -331,8 +340,9 @@ final class LCAppStoreViewModel: ObservableObject {
                 DataManager.shared.model.selectedTab = .apps
             }
             try? await Task.sleep(nanoseconds: 400_000_000)
-            NotificationCenter.default.post(name: NSNotification.InstallAppNotification,
-                                            object: ["url": outputURL])
+            NotificationCenter.default.post(
+                name: NSNotification.InstallAppNotification,
+                object: ["url": outputURL])
 
             // The existing installer consumes the local file asynchronously.
             // Keep it long enough for extraction, then remove the work directory.
@@ -410,9 +420,11 @@ struct LCAppStoreView: View {
                 }
             }
             .navigationTitle("lc.appStore.title".loc)
-            .searchable(text: $viewModel.query,
-                        placement: .navigationBarDrawer(displayMode: .always),
-                        prompt: "lc.appStore.search.prompt".loc)
+            .searchable(
+                text: $viewModel.query,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "lc.appStore.search.prompt".loc
+            )
             .onSubmit(of: .search) {
                 Task { await viewModel.search() }
             }
@@ -430,17 +442,23 @@ struct LCAppStoreView: View {
         .sheet(isPresented: $showLogin) {
             LCAppStoreLoginView(viewModel: viewModel, isPresented: $showLogin)
         }
-        .alert("lc.common.error".loc,
-               isPresented: Binding(get: { viewModel.errorMessage != nil },
-                                    set: { if !$0 { viewModel.errorMessage = nil } })) {
+        .alert(
+            "lc.common.error".loc,
+            isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.errorMessage = nil } })
+        ) {
             Button("lc.common.ok".loc) {
                 viewModel.errorMessage = nil
             }
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
-        .sheet(isPresented: Binding(get: { viewModel.signerReport != nil },
-                                    set: { if !$0 { viewModel.signerReport = nil } })) {
+        .sheet(
+            isPresented: Binding(
+                get: { viewModel.signerReport != nil },
+                set: { if !$0 { viewModel.signerReport = nil } })
+        ) {
             NavigationView {
                 ScrollView {
                     Text(viewModel.signerReport ?? "")

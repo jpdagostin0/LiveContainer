@@ -5,8 +5,8 @@
 //  Created by s s on 2025/7/20.
 //
 
-import Foundation
 import AppIntents
+import Foundation
 import OSLog
 
 enum SideStoreIntentError: LocalizedError {
@@ -52,33 +52,32 @@ private func resolveType(_ mangledTypeName: String) throws -> any Any.Type {
 @available(iOS 17.0, *)
 struct SideStoreIntentCaller {
     static let shared = SideStoreIntentCaller()
-    
+
     // call this when a IntentContext already exists (when sidestore is loaded in LiveContainer itself)
     func callRefreshIntent(mangledTypeName: String) async throws {
         let resolvedType = try resolveType(mangledTypeName)
         guard let intentType = resolvedType as? any ProgressReportingIntent.Type else {
             throw SideStoreIntentError.typeIsNotAppIntent(mangledTypeName)
         }
-        
+
         let intent = intentType.init()
         let _ = try await intent.perform()
     }
-    
+
     // call this when no IntentContext exists (when sidestore is loaded in LiveProcess)
-    func callRefreshIntent2(identifier: String, mangledTypeName: String, progressCallback: (Progress)->Void ) async throws {
+    func callRefreshIntent2(identifier: String, mangledTypeName: String, progressCallback: (Progress) -> Void) async throws {
         try await withUnsafeThrowingContinuation { (c: UnsafeContinuation<(), any Error>) in
             let parent = PrivateIntentRunner.run(
-                        identifier: identifier,
-                        mangledTypeName: mangledTypeName
-                    ) { result, error in
-                        print("performAction result=\(String(describing: result)), " +
-                              "error=\(String(describing: error))")
-                        if let error {
-                            c.resume(throwing: error)
-                        } else {
-                            c.resume()
-                        }
-                    }
+                identifier: identifier,
+                mangledTypeName: mangledTypeName
+            ) { result, error in
+                print("performAction result=\(String(describing: result)), " + "error=\(String(describing: error))")
+                if let error {
+                    c.resume(throwing: error)
+                } else {
+                    c.resume()
+                }
+            }
             if let parent {
                 progressCallback(parent)
             }

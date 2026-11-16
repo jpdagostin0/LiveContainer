@@ -7,7 +7,7 @@
 @import UIKit;
 #import "AppSceneViewController.h"
 
-@interface UIStatusBarManager(Private)
+@interface UIStatusBarManager (Private)
 - (void)handleTapAction:(UIAction *)action;
 @end
 

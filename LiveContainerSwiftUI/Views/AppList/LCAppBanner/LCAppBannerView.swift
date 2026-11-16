@@ -113,7 +113,7 @@ final class LCAppBannerRootView: UIView {
             runControl.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -14),
             runControl.centerYAnchor.constraint(equalTo: centerYAnchor),
             runControl.widthAnchor.constraint(equalToConstant: 70),
-            runControl.heightAnchor.constraint(equalToConstant: 32)
+            runControl.heightAnchor.constraint(equalToConstant: 32),
         ])
     }
 
@@ -156,7 +156,8 @@ final class LCAppBannerRootView: UIView {
         bit32Badge.isHidden = !model.uiIs32bit
         bit32Badge.backgroundColor = UIColor(named: "32BitBadgeColor") ?? .systemBlue
 
-        visualBackgroundView.backgroundColor = dynamicColors
+        visualBackgroundView.backgroundColor =
+            dynamicColors
             ? mainColor.withAlphaComponent(0.5)
             : (UIColor(named: "AppBannerBG") ?? .secondarySystemBackground)
         runControl.update(
@@ -187,15 +188,17 @@ final class LCAppBannerRootView: UIView {
         }
 
         var pixelData = [UInt8](repeating: 0, count: 4)
-        guard let context = CGContext(
-            data: &pixelData,
-            width: 1,
-            height: 1,
-            bitsPerComponent: 8,
-            bytesPerRow: 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
+        guard
+            let context = CGContext(
+                data: &pixelData,
+                width: 1,
+                height: 1,
+                bitsPerComponent: 8,
+                bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else {
             return .clear
         }
         context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 1, height: 1))
@@ -264,10 +267,11 @@ private final class LCAppBannerBadgeView: UIView {
     private let contentView: UIView
 
     convenience init(symbolName: String) {
-        let imageView = UIImageView(image: UIImage(
-            systemName: symbolName,
-            withConfiguration: UIImage.SymbolConfiguration(pointSize: 8)
-        ))
+        let imageView = UIImageView(
+            image: UIImage(
+                systemName: symbolName,
+                withConfiguration: UIImage.SymbolConfiguration(pointSize: 8)
+            ))
         imageView.tintColor = .white
         imageView.contentMode = .center
         self.init(contentView: imageView)
@@ -306,7 +310,7 @@ private final class LCAppBannerBadgeView: UIView {
             contentView.leadingAnchor.constraint(equalTo: leadingAnchor),
             contentView.trailingAnchor.constraint(equalTo: trailingAnchor),
             contentView.topAnchor.constraint(equalTo: topAnchor),
-            contentView.bottomAnchor.constraint(equalTo: bottomAnchor)
+            contentView.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
     }
 }
@@ -359,7 +363,7 @@ final class LCAppBannerRunControl: UIControl {
             titleLabel.topAnchor.constraint(equalTo: topAnchor),
             titleLabel.bottomAnchor.constraint(equalTo: bottomAnchor),
             activityIndicator.centerXAnchor.constraint(equalTo: centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor)
+            activityIndicator.centerYAnchor.constraint(equalTo: centerYAnchor),
         ])
 
         isAccessibilityElement = true
@@ -405,4 +409,3 @@ final class LCAppBannerRunControl: UIControl {
         setNeedsLayout()
     }
 }
-

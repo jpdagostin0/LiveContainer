@@ -5,8 +5,8 @@
 //  Created by s s on 2025/7/20.
 //
 
-import Foundation
 import AppIntents
+import Foundation
 import UserNotifications
 
 @available(iOS 17.0, *)
@@ -21,34 +21,31 @@ func performIntentRefresh(identifier: String, mangledTypeName: String, intentPro
 }
 
 @available(iOS 17.0, *)
-public struct RefreshAllAppsWidgetIntent: AppIntent, ProgressReportingIntent
-{
+public struct RefreshAllAppsWidgetIntent: AppIntent, ProgressReportingIntent {
     public static var title: LocalizedStringResource { "Refresh Apps via Widget" }
-    public static var isDiscoverable: Bool { false } // Don't show in Shortcuts or Spotlight.
-    
+    public static var isDiscoverable: Bool { false }  // Don't show in Shortcuts or Spotlight.
+
     public init() {}
-    
-    public func perform() async throws -> some IntentResult
-    {
+
+    public func perform() async throws -> some IntentResult {
         try await performIntentRefresh(identifier: "RefreshAllAppsWidgetIntent", mangledTypeName: "9SideStore26RefreshAllAppsWidgetIntentV", intentProgress: progress)
         return .result()
     }
 }
 
 @available(iOS 17.0, *)
-public struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, PredictableIntent, ProgressReportingIntent, ForegroundContinuableIntent
-{
+public struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, PredictableIntent, ProgressReportingIntent, ForegroundContinuableIntent {
     public static let intentClassName = "RefreshAllIntent"
-    
+
     public static var title: LocalizedStringResource = "Refresh All Apps"
     public static var description = IntentDescription("Refreshes your sideloaded apps to prevent them from expiring.")
-    
+
     public init() {}
-    
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Refresh All Apps")
     }
-    
+
     public static var predictionConfiguration: some IntentPredictionConfiguration {
         IntentPrediction {
             DisplayRepresentation(
@@ -57,13 +54,12 @@ public struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, Pr
             )
         }
     }
-    
-    public func perform() async throws -> some IntentResult & ProvidesDialog
-    {
+
+    public func perform() async throws -> some IntentResult & ProvidesDialog {
         try await performIntentRefresh(identifier: "RefreshAllIntent", mangledTypeName: "9SideStore20RefreshAllAppsIntentV", intentProgress: progress)
         return .result(dialog: "All apps have been refreshed.")
     }
-    
+
 }
 
 
@@ -76,26 +72,26 @@ class RefreshHandler: NSObject, RefreshServer {
     var sideStorePid: Int32 = 0
     var client: RefreshClient? = nil
     var ext: NSExtension? = nil
-    
+
     static var shared = RefreshHandler()
-    
+
     func startRefresh(identifier: String, mangledName: String) async throws {
         if sideStorePid <= 0 || getpgid(sideStorePid) <= 0, let c {
             c.resume(throwing: NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Built-in SideStore quit unexpectedly"]))
             self.c = nil
         }
-        
+
         if c != nil {
             throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Another refresh task is in progress."])
         }
-        
+
         try await ensureSideStoreLaunched()
         self.client?.refreshAllApps(withIdentifier: identifier, mangledTypeName: mangledName)
-        
+
         try await withUnsafeThrowingContinuation { c in
             self.c = c
         }
-        
+
     }
 
     /// Ensures the built-in SideStore LiveProcess is running and the XPC client
@@ -114,7 +110,7 @@ class RefreshHandler: NSObject, RefreshServer {
 
         // launch SideStore if it's not running
         if (sideStorePid <= 0 || getpgid(sideStorePid) <= 0) && launchContinuation == nil {
-            let lcHome = String(cString:getenv("LC_HOME_PATH"))
+            let lcHome = String(cString: getenv("LC_HOME_PATH"))
             let sideStoreHomeURL = URL(fileURLWithPath: lcHome).appendingPathComponent("Documents/SideStore")
             // The home container may not exist yet (e.g. provisioning right after
             // first sign-in, before SideStore has ever launched). Create it so the
@@ -129,17 +125,17 @@ class RefreshHandler: NSObject, RefreshServer {
             extensionItem.userInfo = [
                 "selected": "builtinSideStore",
                 "bookmarks": [bookmarkData],
-                "endpoint": listener.endpoint
+                "endpoint": listener.endpoint,
             ]
 
             guard let liveProcessURL = UserDefaults.lcMainBundle().builtInPlugInsURL?.appendingPathComponent("LiveProcess.appex"),
-                  let liveProcessBundle = Bundle(url: liveProcessURL)
+                let liveProcessBundle = Bundle(url: liveProcessURL)
             else {
                 NSLog("Unable to locate LiveProcess bundle")
                 throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to locate LiveProcess bundle. To use the Refresh All Apps shortcut, reinstall LiveContainer+SideStore with LiveProcess installed. If you use SideStore, choose \"Keep App Extensions (Use Main Profile)\". If you use PlumeImpactor, choose \"Only Register Main Bundle\". For other sideloaders, select keep all extensions, i.e. DO NOT Remove any extension."])
             }
-            
-            var ext : NSExtension?
+
+            var ext: NSExtension?
             do {
                 ext = try NSExtension(identifier: liveProcessBundle.bundleIdentifier)
             } catch {
@@ -150,7 +146,7 @@ class RefreshHandler: NSObject, RefreshServer {
                 throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to start SideStore extension."])
             }
             self.ext = ext
-            
+
             ext.setRequestInterruptionBlock { uuid in
                 let quitError = NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Built-in SideStore quit unexpectedly"])
                 self.c?.resume(throwing: quitError)
@@ -160,10 +156,10 @@ class RefreshHandler: NSObject, RefreshServer {
                 self.sideStorePid = 0
                 self.launchContinuation = nil
             }
-            
+
             let uuid = await ext.beginRequest(withInputItems: [extensionItem])
             sideStorePid = ext.pid(forRequestIdentifier: uuid)
-            
+
             try await withUnsafeThrowingContinuation { c in
                 self.launchContinuation = c
                 DispatchQueue.main.asyncAfter(deadline: .now() + 300) {
@@ -204,11 +200,11 @@ class RefreshHandler: NSObject, RefreshServer {
             }
         }
     }
-    
+
     func updateProgress(_ value: Double) {
-        progress?.completedUnitCount = Int64(value*100)
+        progress?.completedUnitCount = Int64(value * 100)
     }
-    
+
     func finish(_ error: String?) {
         if let error {
             c?.resume(throwing: NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: error]))
@@ -218,12 +214,12 @@ class RefreshHandler: NSObject, RefreshServer {
             c = nil
         }
     }
-    
+
     func onConnection(_ connection: NSXPCConnection!) {
         connection.remoteObjectInterface = RefreshClientInterface()
         client = connection.remoteObjectProxy as? RefreshClient
     }
-    
+
     func finishedLaunching() {
         launchContinuation?.resume()
         launchContinuation = nil
@@ -240,5 +236,5 @@ class RefreshHandler: NSObject, RefreshServer {
     func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
     }
-    
+
 }

@@ -14,12 +14,12 @@ protocol LCAppPreferencesDelegate {
 
 
 struct PSTextField: View {
-    let title : String
-    let key : String
-    let defaultValue : String?
-    let delegate : LCAppPreferencesDelegate
-    @State var val : String
-    
+    let title: String
+    let key: String
+    let defaultValue: String?
+    let delegate: LCAppPreferencesDelegate
+    @State var val: String
+
     init(title: String, key: String, defaultValue: String?, delegate: LCAppPreferencesDelegate) {
         self.title = title
         self.key = key
@@ -27,7 +27,7 @@ struct PSTextField: View {
         self.delegate = delegate
         self._val = State(initialValue: delegate.get(key: key) as? String ?? defaultValue ?? "")
     }
-    
+
     var body: some View {
         HStack {
             Text(delegate.localize(title))
@@ -39,18 +39,18 @@ struct PSTextField: View {
                 .multilineTextAlignment(.trailing)
         }
     }
-    
+
 }
 
 struct PSTitleValue: View {
-    let title : String
-    let key : String
-    let defaultValue : AnyHashable
-    let values : [AnyHashable]?
-    let titles : [String]?
-    let displayValue : String
-    let delegate : LCAppPreferencesDelegate
-    
+    let title: String
+    let key: String
+    let defaultValue: AnyHashable
+    let values: [AnyHashable]?
+    let titles: [String]?
+    let displayValue: String
+    let delegate: LCAppPreferencesDelegate
+
     init(title: String, key: String, defaultValue: AnyHashable, values: [AnyHashable]?, titles: [String]?, delegate: LCAppPreferencesDelegate) {
         self.title = title
         self.key = key
@@ -73,15 +73,15 @@ struct PSTitleValue: View {
                 break
             }
         }
-        
-        
+
+
         guard let realValue else {
             displayValue = defaultValueText
-            
+
             return
         }
 
-        
+
         for i in 0..<values.count {
             let value = values[i]
             if value == realValue {
@@ -91,7 +91,7 @@ struct PSTitleValue: View {
         }
         displayValue = realValueText
     }
-    
+
     var body: some View {
         HStack {
             Text(delegate.localize(title))
@@ -104,14 +104,14 @@ struct PSTitleValue: View {
 }
 
 struct PSMultiValue: View {
-    let title : String
-    let key : String
-    let defaultValue : AnyHashable
-    let values : [AnyHashable]
-    let titles : [String]
-    let delegate : LCAppPreferencesDelegate
-    @State var realValue : AnyHashable
-    
+    let title: String
+    let key: String
+    let defaultValue: AnyHashable
+    let values: [AnyHashable]
+    let titles: [String]
+    let delegate: LCAppPreferencesDelegate
+    @State var realValue: AnyHashable
+
     init(title: String, key: String, defaultValue: AnyHashable, values: [AnyHashable], titles: [String], delegate: LCAppPreferencesDelegate) {
         self.title = title
         self.key = key
@@ -122,10 +122,10 @@ struct PSMultiValue: View {
         self._realValue = State(initialValue: delegate.get(key: key) ?? defaultValue)
 
     }
-    
+
     var body: some View {
         Picker(delegate.localize(title), selection: $realValue) {
-            ForEach(values.indices, id:\.self) { i in
+            ForEach(values.indices, id: \.self) { i in
                 Text(delegate.localize(titles[i])).tag(values[i])
             }
         }
@@ -136,14 +136,14 @@ struct PSMultiValue: View {
 }
 
 struct PSToggleSwitch: View {
-    let title : String
-    let key : String
-    let defaultValue : AnyHashable
-    let trueValue : AnyHashable
-    let falseValue : AnyHashable
-    let delegate : LCAppPreferencesDelegate
-    @State var realValue : Bool = false
-    
+    let title: String
+    let key: String
+    let defaultValue: AnyHashable
+    let trueValue: AnyHashable
+    let falseValue: AnyHashable
+    let delegate: LCAppPreferencesDelegate
+    @State var realValue: Bool = false
+
     init(title: String, key: String, defaultValue: AnyHashable, trueValue: AnyHashable?, falseValue: AnyHashable?, delegate: LCAppPreferencesDelegate) {
         self.title = title
         self.key = key
@@ -156,7 +156,7 @@ struct PSToggleSwitch: View {
             _realValue = State(initialValue: true)
         }
     }
-    
+
     var body: some View {
         Toggle(delegate.localize(title), isOn: $realValue)
             .onChange(of: realValue) { newValue in
@@ -165,14 +165,14 @@ struct PSToggleSwitch: View {
     }
 }
 
-struct PSSlider : View {
-    let key : String
-    let defaultValue : Float
-    let minimumValue : Float
-    let maximumValue : Float
-    let delegate : LCAppPreferencesDelegate
-    @State var realValue : Float
-    
+struct PSSlider: View {
+    let key: String
+    let defaultValue: Float
+    let minimumValue: Float
+    let maximumValue: Float
+    let delegate: LCAppPreferencesDelegate
+    @State var realValue: Float
+
     init(key: String, defaultValue: Float, minimumValue: Float, maximumValue: Float, delegate: LCAppPreferencesDelegate) {
         self.key = key
         self.defaultValue = defaultValue
@@ -182,27 +182,29 @@ struct PSSlider : View {
         let currentValue = delegate.get(key: key) as? Float ?? defaultValue
         self._realValue = State(initialValue: currentValue)
     }
-    
+
     var body: some View {
-        Slider(value: $realValue, in:minimumValue...maximumValue, onEditingChanged: { c in
-            if !c {
-                delegate.set(key: key, val: realValue)
-            }
-        })
-        
+        Slider(
+            value: $realValue, in: minimumValue...maximumValue,
+            onEditingChanged: { c in
+                if !c {
+                    delegate.set(key: key, val: realValue)
+                }
+            })
+
     }
 }
 
 struct PSChildPane: View {
-    let title : String
-    
-    let rootPlistUrl : URL
-    let bundleId : String
-    let settingsBundle : Bundle
-    let containerURL : URL
-    
-    let delegate : LCAppPreferencesDelegate
-    
+    let title: String
+
+    let rootPlistUrl: URL
+    let bundleId: String
+    let settingsBundle: Bundle
+    let containerURL: URL
+
+    let delegate: LCAppPreferencesDelegate
+
     var body: some View {
         NavigationLink {
             AppPreferencePageView(preferencePlistURL: rootPlistUrl, bundleId: bundleId, containerURL: containerURL, settingsBundle: settingsBundle)
@@ -214,11 +216,11 @@ struct PSChildPane: View {
 }
 
 struct PSGroup: View {
-    @State var children : [AnyView]
-    let title : String
-    let footerText : String
-    let delegate : LCAppPreferencesDelegate
-    
+    @State var children: [AnyView]
+    let title: String
+    let footerText: String
+    let delegate: LCAppPreferencesDelegate
+
     var body: some View {
         Section {
             ForEach(children.indices, id: \.self) { i in
@@ -230,39 +232,39 @@ struct PSGroup: View {
             Text(delegate.localize(footerText))
         }
     }
-    
+
 }
 
-struct AppPreferencePageView : View {
-    let preferencePlistURL : URL
-    
-    @State var children : [AnyView] = []
-    @State var errorInfo : String?
+struct AppPreferencePageView: View {
+    let preferencePlistURL: URL
 
-    init(preferencePlistURL : URL, bundleId : String, containerURL : URL, settingsBundle: Bundle) {
-        var children : [AnyView] = []
+    @State var children: [AnyView] = []
+    @State var errorInfo: String?
+
+    init(preferencePlistURL: URL, bundleId: String, containerURL: URL, settingsBundle: Bundle) {
+        var children: [AnyView] = []
         self.preferencePlistURL = preferencePlistURL
         guard let dict = NSMutableDictionary(contentsOf: preferencePlistURL) else {
             errorInfo = "Failed to load preference."
             return
         }
-        guard let items = dict["PreferenceSpecifiers"] as? [[String:Any]] else {
+        guard let items = dict["PreferenceSpecifiers"] as? [[String: Any]] else {
             errorInfo = "Failed to load preference."
             return
         }
         let suiteName = dict["ApplicationGroupContainerIdentifier"] as? String ?? bundleId
         let stringTable = dict["StringsTable"] as? String ?? nil
-        
+
         let userDefaults = UserDefaults()._init(withSuiteName: suiteName, container: containerURL)!
-        let delegate = AppPreferenceModel(settingsBundle: settingsBundle, userDefaults:userDefaults, table: stringTable)
-        
-        var currGroup : [String:Any]? = nil
-        var currGroupChildren : [AnyView] = []
+        let delegate = AppPreferenceModel(settingsBundle: settingsBundle, userDefaults: userDefaults, table: stringTable)
+
+        var currGroup: [String: Any]? = nil
+        var currGroupChildren: [AnyView] = []
         for item in items {
             guard let type = item["Type"] as? String else {
                 continue
             }
-            var currView : (any View)?
+            var currView: (any View)?
             if type == "PSTitleValueSpecifier" {
                 guard let title = item["Title"] as? String, let key = item["Key"] as? String, let defaultValue = item["DefaultValue"] as? AnyHashable else {
                     continue
@@ -284,17 +286,17 @@ struct AppPreferencePageView : View {
                 }
                 currView = PSToggleSwitch(title: title, key: key, defaultValue: defaultValue, trueValue: item["TrueValue"] as? AnyHashable, falseValue: item["FalseValue"] as? AnyHashable, delegate: delegate)
             } else if type == "PSSliderSpecifier" {
-                guard let key = item["Key"] as? String, let defaultValue = item["DefaultValue"] as? Float, let minimumValue = item["MinimumValue"] as? Float, let maximumValue =  item["MaximumValue"] as? Float else {
+                guard let key = item["Key"] as? String, let defaultValue = item["DefaultValue"] as? Float, let minimumValue = item["MinimumValue"] as? Float, let maximumValue = item["MaximumValue"] as? Float else {
                     continue
                 }
                 currView = PSSlider(key: key, defaultValue: defaultValue, minimumValue: minimumValue, maximumValue: maximumValue, delegate: delegate)
-            } else if type == "PSChildPaneSpecifier"{
+            } else if type == "PSChildPaneSpecifier" {
                 guard let title = item["Title"] as? String, let file = item["File"] as? String else {
                     continue
                 }
                 let fileURL = preferencePlistURL.deletingLastPathComponent().appendingPathComponent(file).appendingPathExtension("plist")
                 currView = PSChildPane(title: title, rootPlistUrl: fileURL, bundleId: bundleId, settingsBundle: settingsBundle, containerURL: containerURL, delegate: delegate)
-                
+
             } else if type == "PSGroupSpecifier" {
 
                 if let currGroup {
@@ -307,7 +309,7 @@ struct AppPreferencePageView : View {
                 continue
             }
             if currGroup == nil || type == "PSGroupSpecifier" {
-                    children.append(AnyView(currView))
+                children.append(AnyView(currView))
             } else {
                 currGroupChildren.append(AnyView(currView))
             }
@@ -318,57 +320,57 @@ struct AppPreferencePageView : View {
         }
         self._children = State(initialValue: children)
     }
-    
+
     var body: some View {
-            Form {
-                ForEach(children.indices, id: \.self) { i in
-                    children[i]
-                }
+        Form {
+            ForEach(children.indices, id: \.self) { i in
+                children[i]
             }
+        }
 
     }
 }
 
 class AppPreferenceModel: LCAppPreferencesDelegate {
-    let settingsBundle : Bundle
-    let userDefaults : UserDefaults
-    let table : String?
-    private static var _enBundle : Bundle?
+    let settingsBundle: Bundle
+    let userDefaults: UserDefaults
+    let table: String?
+    private static var _enBundle: Bundle?
     private static var _enBundleFound = false
-    private var enBundle : Bundle? {
+    private var enBundle: Bundle? {
         if AppPreferenceModel._enBundleFound {
-            return AppPreferenceModel._enBundle;
+            return AppPreferenceModel._enBundle
         }
         let language = "en"
-        if let path = settingsBundle.path(forResource:language, ofType: "lproj") {
+        if let path = settingsBundle.path(forResource: language, ofType: "lproj") {
             let bundle = Bundle(path: path)
             AppPreferenceModel._enBundle = bundle
         }
         AppPreferenceModel._enBundleFound = true
         return AppPreferenceModel._enBundle
     }
-    
+
     init(settingsBundle: Bundle, userDefaults: UserDefaults, table: String?) {
         self.settingsBundle = settingsBundle
         self.userDefaults = userDefaults
         self.table = table
     }
-    
+
     func get(key: String) -> AnyHashable? {
         return self.userDefaults.object(forKey: key) as? AnyHashable ?? nil
     }
-    
+
     func set(key: String, val: AnyHashable?) {
         self.userDefaults.set(val, forKey: key)
     }
-    
+
     func localize(_ key: String) -> String {
         if let table {
             let message = NSLocalizedString(key, tableName: table, bundle: settingsBundle, comment: "")
             if message != key {
                 return message
             }
-            if let forcedString = enBundle?.localizedString(forKey: key, value: nil, table: table){
+            if let forcedString = enBundle?.localizedString(forKey: key, value: nil, table: table) {
                 return forcedString
             } else {
                 return key
@@ -376,17 +378,17 @@ class AppPreferenceModel: LCAppPreferencesDelegate {
         } else {
             return key
         }
-        
+
     }
-    
+
 }
 
 struct AppPreferenceView: View {
-    let rootPlistUrl : URL
-    let bundleId : String
-    let settingsBundle : Bundle
-    let containerURL : URL
-    
+    let rootPlistUrl: URL
+    let bundleId: String
+    let settingsBundle: Bundle
+    let containerURL: URL
+
     init(bundleId: String, settingsBundle: Bundle, containerURL: URL) {
         self.bundleId = bundleId
         self.settingsBundle = settingsBundle
@@ -396,6 +398,6 @@ struct AppPreferenceView: View {
     }
 
     var body: some View {
-        AppPreferencePageView(preferencePlistURL: rootPlistUrl, bundleId: bundleId, containerURL : containerURL, settingsBundle: settingsBundle)
+        AppPreferencePageView(preferencePlistURL: rootPlistUrl, bundleId: bundleId, containerURL: containerURL, settingsBundle: settingsBundle)
     }
 }

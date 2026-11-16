@@ -8,30 +8,30 @@
 import SwiftUI
 
 struct LCFolderPath {
-    var path : URL
-    var desc : String
+    var path: URL
+    var desc: String
 }
 
-struct LCDataManagementView : View {
-    @State var folderPaths : [LCFolderPath]
+struct LCDataManagementView: View {
+    @State var folderPaths: [LCFolderPath]
     @State var filzaInstalled = false
     @State var appeared = false
-    
+
     @StateObject private var appFolderRemovalAlert = YesNoHelper()
     @State private var folderRemoveCount = 0
-    
+
     @StateObject private var keyChainRemovalAlert = YesNoHelper()
     @StateObject private var tmpRemovalAlert = YesNoHelper()
-    @StateObject private var cacheRemovalAlert = YesNoHelper() 
+    @StateObject private var cacheRemovalAlert = YesNoHelper()
 
-    
+
     @State var errorShow = false
     @State var errorInfo = ""
     @State var successShow = false
     @State var successInfo = ""
-    
-    @EnvironmentObject private var sharedModel : SharedModel
-    
+
+    @EnvironmentObject private var sharedModel: SharedModel
+
     init() {
         _folderPaths = State(initialValue: [
             LCFolderPath(path: LCPath.docPath, desc: "Private Container"),
@@ -39,9 +39,9 @@ struct LCDataManagementView : View {
             LCFolderPath(path: Bundle.main.bundleURL, desc: "LiveContainer Bundle"),
         ])
     }
-    
+
     var body: some View {
-    
+
         Form {
             Section {
                 if sharedModel.multiLCStatus != 2 {
@@ -61,33 +61,33 @@ struct LCDataManagementView : View {
                     } label: {
                         Text("lc.settings.moveDanglingFolderOut".loc)
                     }
-                    Button(role:.destructive) {
+                    Button(role: .destructive) {
                         Task { await cleanUpUnusedFolders() }
                     } label: {
                         Text("lc.settings.cleanDataFolder".loc)
                     }
                 }
 
-                Button(role:.destructive) {
+                Button(role: .destructive) {
                     Task { await removeKeyChain() }
                 } label: {
                     Text("lc.settings.cleanKeychain".loc)
                 }
 
-                Button(role:.destructive) {
+                Button(role: .destructive) {
                     Task { await clearTemporaryFiles() }
                 } label: {
                     Text("lc.settings.cleanTmp".loc)
                 }
-                
-                Button(role:.destructive) {
+
+                Button(role: .destructive) {
                     Task { await clearCacheFiles() }
                 } label: {
-                    Text("lc.settings.cleanCaches".loc) 
+                    Text("lc.settings.cleanCaches".loc)
                 }
 
             }
-            
+
             Section {
                 Button {
                     Task { await clearIconCache() }
@@ -95,9 +95,9 @@ struct LCDataManagementView : View {
                     Text("lc.settings.clearIconCache".loc)
                 }
             }
-            
+
             Section {
-                ForEach(folderPaths, id:\.desc) { path in
+                ForEach(folderPaths, id: \.desc) { path in
                     HStack(spacing: 10) {
                         Text(path.desc)
                         Spacer()
@@ -121,11 +121,11 @@ struct LCDataManagementView : View {
         }
         .navigationTitle("lc.settings.dataManagement".loc)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("lc.common.error".loc, isPresented: $errorShow){
+        .alert("lc.common.error".loc, isPresented: $errorShow) {
         } message: {
             Text(errorInfo)
         }
-        .alert("lc.common.success".loc, isPresented: $successShow){
+        .alert("lc.common.success".loc, isPresented: $successShow) {
         } message: {
             Text(successInfo)
         }
@@ -176,24 +176,24 @@ struct LCDataManagementView : View {
             Text("lc.settings.cleanTmpConfirm".loc)
         }
         .alert("lc.settings.cleanCaches".loc, isPresented: $cacheRemovalAlert.show) {
-    Button(role: .destructive) {
-        cacheRemovalAlert.close(result: true)
-    } label: {
-        Text("lc.common.delete".loc)
-    }
+            Button(role: .destructive) {
+                cacheRemovalAlert.close(result: true)
+            } label: {
+                Text("lc.common.delete".loc)
+            }
 
-    Button("lc.common.cancel".loc, role: .cancel) {
-        cacheRemovalAlert.close(result: false)
-    }
-} message: {
-    Text("lc.settings.cleanCacheConfirm".loc) 
-}
+            Button("lc.common.cancel".loc, role: .cancel) {
+                cacheRemovalAlert.close(result: false)
+            }
+        } message: {
+            Text("lc.settings.cleanCacheConfirm".loc)
+        }
 
         .onAppear {
             onAppearFunc()
         }
     }
-    
+
     func onAppearFunc() {
         if !appeared {
             for app in sharedModel.apps {
@@ -205,29 +205,29 @@ struct LCDataManagementView : View {
             appeared = true
         }
     }
-    
+
     func cleanUpUnusedFolders() async {
-        
-        var folderNameToAppDict : [String:LCAppModel] = [:]
+
+        var folderNameToAppDict: [String: LCAppModel] = [:]
         for app in sharedModel.apps {
             for container in app.appInfo.containers {
-                folderNameToAppDict[container.folderName] = app;
+                folderNameToAppDict[container.folderName] = app
             }
         }
         for app in sharedModel.hiddenApps {
             for container in app.appInfo.containers {
-                folderNameToAppDict[container.folderName] = app;
+                folderNameToAppDict[container.folderName] = app
             }
         }
-        
-        var foldersToDelete : [String]  = []
+
+        var foldersToDelete: [String] = []
         for appDataFolderName in sharedModel.appDataFolderNames {
             if folderNameToAppDict[appDataFolderName] == nil {
                 foldersToDelete.append(appDataFolderName)
             }
         }
         folderRemoveCount = foldersToDelete.count
-        
+
         guard let result = await appFolderRemovalAlert.open(), result else {
             return
         }
@@ -244,24 +244,25 @@ struct LCDataManagementView : View {
             errorInfo = error.localizedDescription
             errorShow = true
         }
-        
+
     }
-    
+
     func removeKeyChain() async {
         guard let result = await keyChainRemovalAlert.open(), result else {
             return
         }
-        
+
         [kSecClassGenericPassword, kSecClassInternetPassword, kSecClassCertificate, kSecClassKey, kSecClassIdentity].forEach {
-          let status = SecItemDelete([
-            kSecClass: $0,
-            kSecAttrSynchronizable: kSecAttrSynchronizableAny
-          ] as CFDictionary)
-          if status != errSecSuccess && status != errSecItemNotFound {
-              //Error while removing class $0
-              errorInfo = status.description
-              errorShow = true
-          }
+            let status = SecItemDelete(
+                [
+                    kSecClass: $0,
+                    kSecAttrSynchronizable: kSecAttrSynchronizableAny,
+                ] as CFDictionary)
+            if status != errSecSuccess && status != errSecItemNotFound {
+                //Error while removing class $0
+                errorInfo = status.description
+                errorShow = true
+            }
         }
     }
 
@@ -305,7 +306,7 @@ struct LCDataManagementView : View {
         if UserDefaults.sideStoreExist() {
             allApps.append(LCAppModel(appInfo: BuiltInSideStoreAppInfo.shared))
         }
-        
+
         var cleanedCount = 0
 
         do {
@@ -313,7 +314,7 @@ struct LCDataManagementView : View {
                 for container in app.uiContainers {
                     let containerPath = container.containerURL
                     let guestCachePath = containerPath.appendingPathComponent("Library/Caches")
-                    
+
                     if fm.fileExists(atPath: guestCachePath.path) {
                         let cacheItems = try fm.contentsOfDirectory(at: guestCachePath, includingPropertiesForKeys: nil)
                         for item in cacheItems {
@@ -324,7 +325,8 @@ struct LCDataManagementView : View {
                 }
             }
             if let lcCaches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first,
-                fm.fileExists(atPath: lcCaches.path) {
+                fm.fileExists(atPath: lcCaches.path)
+            {
                 let cacheItems = try fm.contentsOfDirectory(at: lcCaches, includingPropertiesForKeys: nil)
                 for item in cacheItems {
                     try fm.removeItem(at: item)
@@ -348,36 +350,36 @@ struct LCDataManagementView : View {
     func moveDanglingFolders() async {
         let fm = FileManager()
         do {
-            var appDataFoldersInUse : Set<String> = Set();
-            var tweakFoldersInUse : Set<String> = Set();
+            var appDataFoldersInUse: Set<String> = Set()
+            var tweakFoldersInUse: Set<String> = Set()
             for app in sharedModel.apps {
                 if !app.appInfo.isShared {
                     continue
                 }
                 for container in app.appInfo.containers {
-                    appDataFoldersInUse.update(with: container.folderName);
+                    appDataFoldersInUse.update(with: container.folderName)
                 }
 
-                
+
                 if let folder = app.appInfo.tweakFolder {
-                    tweakFoldersInUse.update(with: folder);
+                    tweakFoldersInUse.update(with: folder)
                 }
 
             }
-            
+
             for app in sharedModel.hiddenApps {
                 if !app.appInfo.isShared {
                     continue
                 }
                 for container in app.appInfo.containers {
-                    appDataFoldersInUse.update(with: container.folderName);
+                    appDataFoldersInUse.update(with: container.folderName)
                 }
                 if let folder = app.appInfo.tweakFolder {
-                    tweakFoldersInUse.update(with: folder);
+                    tweakFoldersInUse.update(with: folder)
                 }
 
             }
-            
+
             var movedDataFolderCount = 0
             let sharedDataFolders = try fm.contentsOfDirectory(atPath: LCPath.lcGroupDataPath.path)
             for sharedDataFolder in sharedDataFolders {
@@ -387,7 +389,7 @@ struct LCDataManagementView : View {
                 try fm.moveItem(at: LCPath.lcGroupDataPath.appendingPathComponent(sharedDataFolder), to: LCPath.dataPath.appendingPathComponent(sharedDataFolder))
                 movedDataFolderCount += 1
             }
-            
+
             var movedTweakFolderCount = 0
             let sharedTweakFolders = try fm.contentsOfDirectory(atPath: LCPath.lcGroupTweakPath.path)
             for tweakFolderInUse in sharedTweakFolders {
@@ -397,15 +399,15 @@ struct LCDataManagementView : View {
                 try fm.moveItem(at: LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolderInUse), to: LCPath.tweakPath.appendingPathComponent(tweakFolderInUse))
                 movedTweakFolderCount += 1
             }
-            successInfo = "lc.settings.moveDanglingFolderComplete %lld %lld".localizeWithFormat(movedDataFolderCount,movedTweakFolderCount)
+            successInfo = "lc.settings.moveDanglingFolderComplete %lld %lld".localizeWithFormat(movedDataFolderCount, movedTweakFolderCount)
             successShow = true
-            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
         }
     }
-    
+
     func moveAppGroupFolderFromAppGroupToPrivate() {
         let fm = FileManager()
         do {
@@ -415,7 +417,7 @@ struct LCDataManagementView : View {
             if !fm.fileExists(atPath: LCPath.lcGroupAppGroupPath.path) {
                 try fm.createDirectory(atPath: LCPath.lcGroupAppGroupPath.path, withIntermediateDirectories: true)
             }
-            
+
             let privateFolderContents = try fm.contentsOfDirectory(at: LCPath.appGroupPath, includingPropertiesForKeys: nil)
             let sharedFolderContents = try fm.contentsOfDirectory(at: LCPath.lcGroupAppGroupPath, includingPropertiesForKeys: nil)
             if privateFolderContents.count > 0 {
@@ -428,13 +430,13 @@ struct LCDataManagementView : View {
             }
             successInfo = "lc.settings.appGroup.moveSuccess".loc
             successShow = true
-            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
         }
     }
-    
+
     func moveAppGroupFolderFromPrivateToAppGroup() {
         let fm = FileManager()
         do {
@@ -444,7 +446,7 @@ struct LCDataManagementView : View {
             if !fm.fileExists(atPath: LCPath.lcGroupAppGroupPath.path) {
                 try fm.createDirectory(atPath: LCPath.lcGroupAppGroupPath.path, withIntermediateDirectories: true)
             }
-            
+
             let privateFolderContents = try fm.contentsOfDirectory(at: LCPath.appGroupPath, includingPropertiesForKeys: nil)
             let sharedFolderContents = try fm.contentsOfDirectory(at: LCPath.lcGroupAppGroupPath, includingPropertiesForKeys: nil)
             if sharedFolderContents.count > 0 {
@@ -457,17 +459,17 @@ struct LCDataManagementView : View {
             }
             successInfo = "lc.settings.appGroup.moveSuccess".loc
             successShow = true
-            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true
         }
     }
-    
+
     func copy(text: String) {
         UIPasteboard.general.string = text
     }
-    
+
     func openInFilza(path: URL) {
         let launchURLStr = "filza://view\(path.path)/."
         Task {
@@ -481,7 +483,7 @@ struct LCDataManagementView : View {
             }
         }
     }
-    
+
     func clearIconCache() async {
         for app in sharedModel.apps {
             app.appInfo.clearIconCache()

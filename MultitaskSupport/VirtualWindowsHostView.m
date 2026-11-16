@@ -16,18 +16,18 @@
     return self;
 }
 - (BOOL)handleStatusBarTapAction:(UIAction *)action {
-    if(!self.shouldForwardTapAction) return NO;
+    if (!self.shouldForwardTapAction) return NO;
     // grab the frontmost app window, if it's visible pass this event to it
     UIView *frontmostView = self.subviews.lastObject;
-    if(!frontmostView.hidden) {
+    if (!frontmostView.hidden) {
         DecoratedAppSceneViewController *decoratedVC = (id)frontmostView._viewDelegate;
         [decoratedVC.appSceneVC handleStatusBarTapAction:action];
     }
     return !frontmostView.hidden;
 }
 - (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
-    UIView* hitView = [super hitTest:point withEvent:event];
-    if(hitView == self) {
+    UIView *hitView = [super hitTest:point withEvent:event];
+    if (hitView == self) {
         self.shouldForwardTapAction = NO;
         return nil;
     } else {

@@ -6,20 +6,20 @@
 //
 import SwiftUI
 
-struct LCEntitlementView : View {
+struct LCEntitlementView: View {
     @State var isLiveProcess: Bool
     @State var loaded = false
     @State var entitlementReadSuccess = false
-    
-    @State var teamId : String?
+
+    @State var teamId: String?
     @State var getTaskAllow = false
     @State var keyChainAccessGroup = false
-    @State var correctBundleId : String?
+    @State var correctBundleId: String?
     @State var isBundleIdCorrect = false
     @State var appGroup = false
-    
+
     @State var entitlementContent = "Failed to Load Entitlement."
-    
+
     var body: some View {
         if loaded {
             Form {
@@ -29,7 +29,7 @@ struct LCEntitlementView : View {
                             Text("lc.jitlessDiag.bundleId".loc)
                             Spacer()
                             Text(Bundle.main.bundleIdentifier ?? "lc.common.unknown".loc)
-                                .foregroundStyle(entitlementReadSuccess && teamId != nil ? (isBundleIdCorrect ? .green : .red): .gray)
+                                .foregroundStyle(entitlementReadSuccess && teamId != nil ? (isBundleIdCorrect ? .green : .red) : .gray)
                                 .textSelection(.enabled)
                         }
                     }
@@ -70,7 +70,7 @@ struct LCEntitlementView : View {
                     }
                 }
 
-                
+
                 Section {
                     Button {
                         UIPasteboard.general.string = entitlementContent
@@ -85,23 +85,23 @@ struct LCEntitlementView : View {
             .navigationBarTitleDisplayMode(.inline)
         } else {
             Text("lc.common.loading".loc)
-                .onAppear() {
+                .onAppear {
                     onAppear()
                 }
         }
     }
-    
+
     func onAppear() {
         if loaded {
             return
         }
-        
+
         defer {
             loaded = true
         }
-        
+
         let executablePath: String?
-        
+
         if !isLiveProcess {
             executablePath = Bundle.main.executablePath
         } else {
@@ -117,21 +117,21 @@ struct LCEntitlementView : View {
             return
         }
         entitlementContent = entitlementXML
-        
+
         var format = PropertyListSerialization.PropertyListFormat.xml
-        guard let entitlementDict = try? PropertyListSerialization.propertyList(from: entitlementXML.data(using: .utf8) ?? Data(), format: &format) as? [String : AnyObject] else {
+        guard let entitlementDict = try? PropertyListSerialization.propertyList(from: entitlementXML.data(using: .utf8) ?? Data(), format: &format) as? [String: AnyObject] else {
             return
         }
         entitlementReadSuccess = true
         let entitlementTeamId = entitlementDict["com.apple.developer.team-identifier"] as? String
         teamId = entitlementTeamId
         if let entitlementTeamId {
-            if let appGroups = entitlementDict["com.apple.security.application-groups"] as? Array<String> {
+            if let appGroups = entitlementDict["com.apple.security.application-groups"] as? [String] {
                 if appGroups.count > 0 {
                     appGroup = true
                 }
             }
-            if let keyChainAccessGroups = entitlementDict["keychain-access-groups"] as? Array<String> {
+            if let keyChainAccessGroups = entitlementDict["keychain-access-groups"] as? [String] {
                 var notFound = true
                 if keyChainAccessGroups.contains("\(entitlementTeamId).com.kdt.livecontainer.shared") {
                     notFound = false
@@ -152,38 +152,38 @@ struct LCEntitlementView : View {
                 isBundleIdCorrect = bundleId == correctBundleId
             }
         }
-        
+
         getTaskAllow = entitlementDict["get-task-allow"] as? Bool ?? false
 
     }
-    
+
 }
 
-struct LCJITLessDiagnoseView : View {
+struct LCJITLessDiagnoseView: View {
     @State var loaded = false
     @State var appGroupId = "Unknown"
-    @State var appGroupIdColor : Color = .gray
-    @State var store : Store = .SideStore
+    @State var appGroupIdColor: Color = .gray
+    @State var store: Store = .SideStore
     @State var certificateDataFound = false
     @State var certificatePasswordFound = false
     @State var appGroupAccessible = false
-    @State var certTeamId : String?
-    @State var expectedTeamId : String?
-    @State var certLastUpdateDateStr : String? = nil
-    @State var certificateStatus : Int = -1
-    @State var certificateValidateUntil : String? = nil
-    
+    @State var certTeamId: String?
+    @State var expectedTeamId: String?
+    @State var certLastUpdateDateStr: String? = nil
+    @State var certificateStatus: Int = -1
+    @State var certificateValidateUntil: String? = nil
+
     @State var isJITLessTestInProgress = false
-    
+
     @State var errorShow = false
     @State var errorInfo = ""
     @State var successShow = false
     @State var successInfo = ""
-    
-    @EnvironmentObject private var sharedModel : SharedModel
-    
+
+    @EnvironmentObject private var sharedModel: SharedModel
+
     let storeName = LCUtils.getStoreName()
-    
+
     var body: some View {
         if loaded {
             Form {
@@ -224,7 +224,7 @@ struct LCJITLessDiagnoseView : View {
                             Text("lc.common.unknown".loc)
                                 .foregroundStyle(.gray)
                         }
-                        
+
                     }
                     NavigationLink {
                         LCEntitlementView(isLiveProcess: false)
@@ -239,14 +239,14 @@ struct LCJITLessDiagnoseView : View {
                         }
                     }
                 }
-                    
-                Section() {
+
+                Section {
                     HStack {
                         Text("lc.jitlessDiag.certDataFound".loc)
                         Spacer()
                         Text(certificateDataFound ? "lc.common.yes".loc : "lc.common.no".loc)
                             .foregroundStyle(certificateDataFound ? .green : .red)
-                        
+
                     }
                     HStack {
                         Text("lc.jitlessDiag.certPassFound".loc)
@@ -254,7 +254,7 @@ struct LCJITLessDiagnoseView : View {
                         Text(certificatePasswordFound ? "lc.common.yes".loc : "lc.common.no".loc)
                             .foregroundStyle(certificatePasswordFound ? .green : .red)
                     }
-                    
+
                     HStack {
                         Text("lc.jitlessDiag.certLastUpdate".loc)
                         Spacer()
@@ -265,7 +265,7 @@ struct LCJITLessDiagnoseView : View {
                             Text("lc.common.unknown".loc)
                                 .foregroundStyle(.red)
                         }
-                        
+
                     }
                     if certificateDataFound && certTeamId != nil && certTeamId != expectedTeamId {
                         HStack {
@@ -295,9 +295,9 @@ struct LCJITLessDiagnoseView : View {
                                 .foregroundStyle(certificateStatus == 0 ? .green : .red)
                         }
                     }
-                    
+
                 }
-                                
+
                 Section {
                     Button {
                         testJITLessMode()
@@ -305,7 +305,7 @@ struct LCJITLessDiagnoseView : View {
                         Text("lc.settings.testJitLess".loc)
                     }
                     .disabled(isJITLessTestInProgress)
-                    
+
                     Button {
                         getHelp()
                     } label: {
@@ -326,29 +326,29 @@ struct LCJITLessDiagnoseView : View {
                     } label: {
                         Image(systemName: "arrow.clockwise")
                     }
-                    
+
                 }
             }
-            .alert("lc.common.error".loc, isPresented: $errorShow){
+            .alert("lc.common.error".loc, isPresented: $errorShow) {
             } message: {
                 Text(errorInfo)
             }
-            .alert("lc.common.success".loc, isPresented: $successShow){
+            .alert("lc.common.success".loc, isPresented: $successShow) {
             } message: {
                 Text(successInfo)
             }
-            
+
         } else {
             Text("lc.common.loading".loc)
-                .onAppear() {
+                .onAppear {
                     onAppear()
                 }
         }
 
     }
-    
+
     func onAppear() {
-        
+
         let task = SecTaskCreateFromSelf(nil)
         guard let value = SecTaskCopyValueForEntitlement(task, "com.apple.developer.team-identifier" as CFString, nil), let teamId = value.takeRetainedValue() as? String else {
             errorInfo = "Failed to read com.apple.developer.team-identifier"
@@ -356,7 +356,7 @@ struct LCJITLessDiagnoseView : View {
             return
         }
         expectedTeamId = teamId
-        
+
         if let fetchedAppGroupId = LCSharedUtils.appGroupID() {
             appGroupId = fetchedAppGroupId
             if UserDefaults.sideStoreExist() {
@@ -372,7 +372,7 @@ struct LCJITLessDiagnoseView : View {
             appGroupId = "lc.common.unknown".loc
             appGroupIdColor = .red
         }
-        
+
         store = LCUtils.store()
         appGroupAccessible = LCSharedUtils.appGroupPath() != nil
         certificateDataFound = LCUtils.certificateData() != nil
@@ -389,12 +389,12 @@ struct LCJITLessDiagnoseView : View {
 
         loaded = true
     }
-    
+
     func testJITLessMode() {
         if !certificateDataFound {
             errorInfo = "lc.settings.error.certNotImported".loc
             errorShow = true
-            return;
+            return
         }
 
         isJITLessTestInProgress = true
@@ -408,13 +408,13 @@ struct LCJITLessDiagnoseView : View {
             }
             isJITLessTestInProgress = false
         }
-    
+
     }
-    
+
     func getHelp() {
         UIApplication.shared.open(URL(string: "https://livecontainer.github.io/docs/faq/jit-less-mode-setup")!)
     }
-    
+
     func validateCertificate() {
         certificateStatus = -1
         certificateValidateUntil = nil
@@ -437,7 +437,7 @@ struct LCJITLessDiagnoseView : View {
             }
         }
     }
-    
+
     func getStatusText(status: Int) -> String {
         switch status {
         case 0:

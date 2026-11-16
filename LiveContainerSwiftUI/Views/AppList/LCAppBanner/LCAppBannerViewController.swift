@@ -15,18 +15,18 @@ struct LCAppBannerConfiguration {
 
 
 final class LCAppBannerViewController: UIViewController, UIContextMenuInteractionDelegate, UIDocumentPickerDelegate, UIAdaptivePresentationControllerDelegate {
-        
+
     private let delegate: LCAppBannerDelegate
     private let bannerView = LCAppBannerRootView()
     private var configuration: LCAppBannerConfiguration
     private var exportTemporaryDirectory: URL?
-    
+
     init(delegate: LCAppBannerDelegate, config: LCAppBannerConfiguration) {
         self.delegate = delegate
         self.configuration = config
         super.init(nibName: nil, bundle: nil)
     }
-    
+
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -93,8 +93,9 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
 
     @objc private func runButtonTapped() {
         if #available(iOS 16.0, *),
-           let currentDataFolder = configuration.model.uiSelectedContainer?.folderName,
-           MultitaskManager.isUsing(container: currentDataFolder) {
+            let currentDataFolder = configuration.model.uiSelectedContainer?.folderName,
+            MultitaskManager.isUsing(container: currentDataFolder)
+        {
             var found = false
             if #available(iOS 16.1, *) {
                 found = MultitaskWindowManager.openExistingAppWindow(dataUUID: currentDataFolder)
@@ -153,25 +154,27 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
         // 2. Main Section
         var sectionChildren: [UIMenuElement] = []
         if !model.uiIsShared, model.uiSelectedContainer != nil {
-            sectionChildren.append(UIAction(
-                title: "lc.appBanner.openDataFolder".loc,
-                image: UIImage(systemName: "folder")
-            ) { [weak self] _ in
-                self?.openDataFolder()
-            })
+            sectionChildren.append(
+                UIAction(
+                    title: "lc.appBanner.openDataFolder".loc,
+                    image: UIImage(systemName: "folder")
+                ) { [weak self] _ in
+                    self?.openDataFolder()
+                })
         }
 
         // Multitask Toggle
         if #available(iOS 16.0, *) {
             let shouldLaunchInMultitaskMode = model.shouldLaunchInMultitaskMode
-            sectionChildren.append(UIAction(
-                title: shouldLaunchInMultitaskMode ? "lc.appBanner.run".loc : "lc.appBanner.multitask".loc,
-                image: UIImage(systemName: shouldLaunchInMultitaskMode ? "play.fill" : "macwindow.badge.plus")
-            ) { [weak self] _ in
-                Task { [weak self] in
-                    await self?.runApp(multitask: !shouldLaunchInMultitaskMode)
-                }
-            })
+            sectionChildren.append(
+                UIAction(
+                    title: shouldLaunchInMultitaskMode ? "lc.appBanner.run".loc : "lc.appBanner.multitask".loc,
+                    image: UIImage(systemName: shouldLaunchInMultitaskMode ? "play.fill" : "macwindow.badge.plus")
+                ) { [weak self] _ in
+                    Task { [weak self] in
+                        await self?.runApp(multitask: !shouldLaunchInMultitaskMode)
+                    }
+                })
         }
 
         let addToHomeScreenMenu = UIMenu(
@@ -190,35 +193,38 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
                     Task { [weak self] in
                         await self?.createAppClip()
                     }
-                }
+                },
             ]
         )
         sectionChildren.append(addToHomeScreenMenu)
 
-        sectionChildren.append(UIAction(
-            title: "lc.tabView.settings".loc,
-            image: UIImage(systemName: "gear")
-        ) { [weak self] _ in
-            self?.openSettings()
-        })
+        sectionChildren.append(
+            UIAction(
+                title: "lc.tabView.settings".loc,
+                image: UIImage(systemName: "gear")
+            ) { [weak self] _ in
+                self?.openSettings()
+            })
 
         if !model.uiIsShared {
-            sectionChildren.append(UIAction(
-                title: "lc.appBanner.uninstall".loc,
-                image: UIImage(systemName: "trash"),
-                attributes: .destructive
-            ) { [weak self] _ in
-                Task { [weak self] in
-                    await self?.uninstall()
-                }
-            })
+            sectionChildren.append(
+                UIAction(
+                    title: "lc.appBanner.uninstall".loc,
+                    image: UIImage(systemName: "trash"),
+                    attributes: .destructive
+                ) { [weak self] _ in
+                    Task { [weak self] in
+                        await self?.uninstall()
+                    }
+                })
         }
 
-        menuChildren.append(UIMenu(
-            title: appInfo.relativeBundlePath ?? "",
-            options: .displayInline,
-            children: sectionChildren
-        ))
+        menuChildren.append(
+            UIMenu(
+                title: appInfo.relativeBundlePath ?? "",
+                options: .displayInline,
+                children: sectionChildren
+            ))
         return UIMenu(title: "", children: menuChildren)
     }
 
@@ -237,7 +243,8 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
 
     private func openDataFolder() {
         guard let folderName = configuration.model.uiSelectedContainer?.folderName,
-              let url = URL(string: "shareddocuments://\(LCPath.dataPath.path)/\(folderName)") else {
+            let url = URL(string: "shareddocuments://\(LCPath.dataPath.path)/\(folderName)")
+        else {
             return
         }
         UIApplication.shared.open(url)
@@ -259,12 +266,13 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
         var shouldRemoveAppFolders = false
         let containers = appInfo.containers
         if !containers.isEmpty {
-            shouldRemoveAppFolders = await presentConfirmation(
-                title: "lc.appBanner.deleteDataTitle".loc,
-                message: "lc.appBanner.deleteDataMsg %@".localizeWithFormat(displayName),
-                confirmTitle: "lc.common.delete".loc,
-                cancelTitle: "lc.common.no".loc
-            ) == true
+            shouldRemoveAppFolders =
+                await presentConfirmation(
+                    title: "lc.appBanner.deleteDataTitle".loc,
+                    message: "lc.appBanner.deleteDataMsg %@".localizeWithFormat(displayName),
+                    confirmTitle: "lc.common.delete".loc,
+                    cancelTitle: "lc.common.no".loc
+                ) == true
         }
 
         do {
@@ -290,7 +298,6 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
     }
 
 
-
     private func copyLaunchUrl() {
         guard let relativeBundlePath = configuration.model.appInfo.relativeBundlePath else {
             return
@@ -309,10 +316,12 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
         }
 
         do {
-            guard let profile = configuration.model.appInfo.generateWebClipConfig(
-                withContainerId: configuration.model.uiSelectedContainer?.folderName,
-                iconStyle: style
-            ) else {
+            guard
+                let profile = configuration.model.appInfo.generateWebClipConfig(
+                    withContainerId: configuration.model.uiSelectedContainer?.folderName,
+                    iconStyle: style
+                )
+            else {
                 throw CocoaError(.propertyListWriteInvalid)
             }
             let data = try PropertyListSerialization.data(fromPropertyList: profile, format: .xml, options: 0)
@@ -329,7 +338,8 @@ final class LCAppBannerViewController: UIViewController, UIContextMenuInteractio
 
         do {
             guard let image = configuration.model.appInfo.generateLiveContainerWrappedIcon(with: style),
-                  let imageData = image.pngData() else {
+                let imageData = image.pngData()
+            else {
                 throw CocoaError(.fileWriteUnknown)
             }
 

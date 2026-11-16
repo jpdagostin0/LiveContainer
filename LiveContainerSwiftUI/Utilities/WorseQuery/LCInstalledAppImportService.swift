@@ -61,22 +61,27 @@ final class LCInstalledAppImportService {
             for bundleURL in bundleURLs ?? [] where bundleURL.pathExtension.lowercased() == "app" {
                 let infoURL = bundleURL.appendingPathComponent("Info.plist")
                 guard let info = NSDictionary(contentsOf: infoURL) as? [String: Any],
-                      let bundleIdentifier = info["CFBundleIdentifier"] as? String,
-                      !bundleIdentifier.isEmpty else {
+                    let bundleIdentifier = info["CFBundleIdentifier"] as? String,
+                    !bundleIdentifier.isEmpty
+                else {
                     continue
                 }
 
-                let displayName = (info["CFBundleDisplayName"] as? String)
+                let displayName =
+                    (info["CFBundleDisplayName"] as? String)
                     ?? (info["CFBundleName"] as? String)
                     ?? bundleURL.deletingPathExtension().lastPathComponent
-                let version = (info["CFBundleShortVersionString"] as? String)
+                let version =
+                    (info["CFBundleShortVersionString"] as? String)
                     ?? (info["CFBundleVersion"] as? String)
                     ?? ""
 
-                apps.append(LCInstalledApp(bundleURL: bundleURL,
-                                           bundleIdentifier: bundleIdentifier,
-                                           displayName: displayName,
-                                           version: version))
+                apps.append(
+                    LCInstalledApp(
+                        bundleURL: bundleURL,
+                        bundleIdentifier: bundleIdentifier,
+                        displayName: displayName,
+                        version: version))
             }
         }
 

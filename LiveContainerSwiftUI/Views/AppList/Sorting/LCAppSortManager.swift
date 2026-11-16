@@ -5,9 +5,9 @@
 //  Created by boa-z on 2025/6/22.
 //
 
+import Combine
 import Foundation
 import SwiftUI
-import Combine
 
 enum AppSortType: String, CaseIterable {
     case defaultOrder = "default"
@@ -16,7 +16,7 @@ enum AppSortType: String, CaseIterable {
     case lastLaunched = "last_launched"
     case installationDate = "installationDate"
     case custom = "custom"
-    
+
     var displayName: String {
         switch self {
         case .defaultOrder:
@@ -33,7 +33,7 @@ enum AppSortType: String, CaseIterable {
             return "lc.appList.sort.custom".loc
         }
     }
-    
+
     var systemImage: String {
         switch self {
         case .defaultOrder:
@@ -58,9 +58,9 @@ enum AppSortType: String, CaseIterable {
 
 /// Manages the state and logic for sorting the list of applications.
 class LCAppSortManager: ObservableObject {
-    
+
     static var shared: LCAppSortManager = LCAppSortManager()
-    
+
     @AppStorage("LCAppSortType", store: LCUtils.appGroupUserDefault) var appSortType: AppSortType = .defaultOrder {
         didSet {
             self.sortedApps = self.getSortedApps(DataManager.shared.model.apps, sortType: self.appSortType, customSortOrder: self.customSortOrder)
@@ -75,28 +75,28 @@ class LCAppSortManager: ObservableObject {
             LCUtils.appGroupUserDefault.set(customSortOrder, forKey: "LCCustomSortOrder")
         }
     }
-    
-    @Published var sortedApps : [LCAppModel] = []
-    @Published var sortedHiddenApps : [LCAppModel] = []
-    
+
+    @Published var sortedApps: [LCAppModel] = []
+    @Published var sortedHiddenApps: [LCAppModel] = []
+
     private var cancellables = Set<AnyCancellable>()
     // MARK: - Initialization
-    
+
     init() {
         self.customSortOrder = LCUtils.appGroupUserDefault.array(forKey: "LCCustomSortOrder") as? [String] ?? []
-        
+
         DataManager.shared.model.$apps
             .sink { newValue in
                 self.sortedApps = self.getSortedApps(newValue, sortType: self.appSortType, customSortOrder: self.customSortOrder)
             }
             .store(in: &cancellables)
-        
+
         DataManager.shared.model.$hiddenApps
             .sink { newValue in
                 self.sortedHiddenApps = self.getSortedApps(newValue, sortType: self.appSortType, customSortOrder: self.customSortOrder)
             }
             .store(in: &cancellables)
-        
+
         $customSortOrder
             .sink { newValue in
                 if self.appSortType == .custom {
@@ -109,91 +109,92 @@ class LCAppSortManager: ObservableObject {
             .store(in: &cancellables)
         DataManager.shared.model.$isHiddenAppUnlocked
             .sink { newValue in
-                if(!newValue) {
+                if !newValue {
                     return
                 }
                 self.sortedHiddenApps = self.getSortedApps(DataManager.shared.model.hiddenApps, sortType: self.appSortType, customSortOrder: self.customSortOrder)
             }
             .store(in: &cancellables)
     }
-    
+
     // MARK: - Internal Logic
-    
+
     func getUniqueIdentifier(for app: LCAppModel) -> String? {
         guard let bundleId = app.appInfo.bundleIdentifier(),
-              let relativePath = app.appInfo.relativeBundlePath else {
+            let relativePath = app.appInfo.relativeBundlePath
+        else {
             return nil
         }
         return "\(bundleId):\(relativePath)"
     }
-    
+
     func matches(uniqueId: String, app: LCAppModel) -> Bool {
         guard let appUniqueId = getUniqueIdentifier(for: app) else {
             return false
         }
         return uniqueId == appUniqueId
     }
-    
+
     func getSortedApps(_ appList: [LCAppModel], sortType: AppSortType, customSortOrder: [String]) -> [LCAppModel] {
         switch sortType {
         case .defaultOrder:
             return appList
         case .alphabetical:
             return appList.sorted { $0.appInfo.displayName().localizedStandardCompare($1.appInfo.displayName()) == .orderedAscending }
-            
+
         case .reverseAlphabetical:
             return appList.sorted { $0.appInfo.displayName().localizedStandardCompare($1.appInfo.displayName()) == .orderedDescending }
-            
+
         case .lastLaunched:
             let appsWithLaunchDate = appList.compactMap { app -> (LCAppModel, Date)? in
                 guard let launchDate = app.appInfo.lastLaunched else { return nil }
                 return (app, launchDate)
             }
-            .sorted { $0.1 > $1.1 } // Sort by date, newest first
-            .map { $0.0 } // Extract just the app models
+            .sorted { $0.1 > $1.1 }  // Sort by date, newest first
+            .map { $0.0 }  // Extract just the app models
 
             let appsWithoutLaunchDate = appList.filter { app in
                 return app.appInfo.lastLaunched == nil
             }
-            
+
             return appsWithLaunchDate + appsWithoutLaunchDate
-            
+
         case .installationDate:
             let appsWithinstallationDate = appList.compactMap { app -> (LCAppModel, Date)? in
                 guard let installationDate = app.appInfo.installationDate else { return nil }
                 return (app, installationDate)
             }
-            .sorted { $0.1 > $1.1 } // Sort by date, newest first
-            .map { $0.0 } // Extract just the app models
+            .sorted { $0.1 > $1.1 }  // Sort by date, newest first
+            .map { $0.0 }  // Extract just the app models
 
             let appsWithoutInstallationDate = appList.filter { app in
                 return app.appInfo.installationDate == nil
             }
-            
+
             return appsWithinstallationDate + appsWithoutInstallationDate
         case .custom:
             return sortByCustomOrder(appList, customSortOrder: customSortOrder)
         }
     }
-    
+
     private func sortByCustomOrder(_ appList: [LCAppModel], customSortOrder: [String]) -> [LCAppModel] {
         if customSortOrder.isEmpty {
             return appList.sorted { $0.appInfo.displayName().localizedStandardCompare($1.appInfo.displayName()) == .orderedAscending }
         }
-        
+
         var sortedApps: [LCAppModel] = []
         var remainingApps = appList
-        
+
         for uniqueId in customSortOrder {
             if let index = remainingApps.firstIndex(where: { matches(uniqueId: uniqueId, app: $0) }) {
                 sortedApps.append(remainingApps.remove(at: index))
             }
         }
-        
+
         remainingApps.sort { $0.appInfo.displayName().localizedStandardCompare($1.appInfo.displayName()) == .orderedAscending }
         sortedApps.append(contentsOf: remainingApps)
-        
+
         return sortedApps
     }
-    
+
 }

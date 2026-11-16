@@ -8,8 +8,8 @@
 //  retired Configurator/MZFinance protocol.
 //
 
-import Foundation
 import AppStoreCore
+import Foundation
 
 @MainActor
 final class IPAToolIOSService {
@@ -33,7 +33,7 @@ final class IPAToolIOSService {
         components.queryItems = [
             URLQueryItem(name: "media", value: "software"),
             URLQueryItem(name: "term", value: term),
-            URLQueryItem(name: "limit", value: String(max(1, min(limit, 200))))
+            URLQueryItem(name: "limit", value: String(max(1, min(limit, 200)))),
         ]
         guard let url = components.url else { throw IPAToolIOSError.invalidResponse }
         let (data, response) = try await publicSession.data(from: url)
@@ -48,7 +48,7 @@ final class IPAToolIOSService {
         components.queryItems = [
             URLQueryItem(name: "media", value: "software"),
             URLQueryItem(name: "bundleId", value: bundleIdentifier),
-            URLQueryItem(name: "limit", value: "1")
+            URLQueryItem(name: "limit", value: "1"),
         ]
         guard let url = components.url else { throw IPAToolIOSError.invalidResponse }
         let (data, response) = try await publicSession.data(from: url)
@@ -63,10 +63,12 @@ final class IPAToolIOSService {
 
     // MARK: - Authentication (native AppStoreCore)
 
-    func authenticate(email: String,
-                      password: String,
-                      code: String? = nil,
-                      rememberAccount: Bool = true) async throws -> IPAToolIOSAccount {
+    func authenticate(
+        email: String,
+        password: String,
+        code: String? = nil,
+        rememberAccount: Bool = true
+    ) async throws -> IPAToolIOSAccount {
         let normalizedCode = code?.filter(\.isNumber)
         if let normalizedCode, normalizedCode.count != 6 {
             throw IPAToolIOSError.invalidCredentials
@@ -91,11 +93,12 @@ final class IPAToolIOSService {
         }
 
         let parts = result.accountName.split(separator: " ", maxSplits: 1).map(String.init)
-        let account = IPAToolIOSAccount(email: email,
-                                        password: password,
-                                        firstName: parts.first ?? "",
-                                        lastName: parts.count > 1 ? parts[1] : "",
-                                        directoryServicesIdentifier: result.directoryServicesIdentifier)
+        let account = IPAToolIOSAccount(
+            email: email,
+            password: password,
+            firstName: parts.first ?? "",
+            lastName: parts.count > 1 ? parts[1] : "",
+            directoryServicesIdentifier: result.directoryServicesIdentifier)
         activeAccount = account
         if rememberAccount {
             try keychain.save(account: account)
@@ -107,10 +110,11 @@ final class IPAToolIOSService {
         guard let saved = try keychain.loadAccount() else {
             throw IPAToolIOSError.notAuthenticated
         }
-        return try await authenticate(email: saved.email,
-                                      password: saved.password,
-                                      code: code,
-                                      rememberAccount: true)
+        return try await authenticate(
+            email: saved.email,
+            password: saved.password,
+            code: code,
+            rememberAccount: true)
     }
 
     func savedAccount() throws -> IPAToolIOSAccount? {
@@ -138,9 +142,11 @@ final class IPAToolIOSService {
 
     // MARK: - Download (native ent/download + direct fetch)
 
-    func download(app: IPAToolIOSApp,
-                  to destinationURL: URL,
-                  progress: @escaping @Sendable (Double) -> Void) async throws -> IPAToolIOSDownload {
+    func download(
+        app: IPAToolIOSApp,
+        to destinationURL: URL,
+        progress: @escaping @Sendable (Double) -> Void
+    ) async throws -> IPAToolIOSDownload {
         guard let storeClient = client, activeAccount != nil else {
             throw IPAToolIOSError.notAuthenticated
         }
@@ -150,8 +156,9 @@ final class IPAToolIOSService {
             throw IPAToolIOSError.noSignature
         }
 
-        try FileManager.default.createDirectory(at: destinationURL.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(
+            at: destinationURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true)
         try? FileManager.default.removeItem(at: destinationURL)
 
         let operation = IPAToolIOSDownloadOperation()
@@ -161,9 +168,10 @@ final class IPAToolIOSService {
             throw IPAToolIOSError.downloadFailed(error.localizedDescription)
         }
 
-        return IPAToolIOSDownload(encryptedIPAURL: destinationURL,
-                                  mainSinf: sinf.data,
-                                  metadataPlist: item.metadataPlist)
+        return IPAToolIOSDownload(
+            encryptedIPAURL: destinationURL,
+            mainSinf: sinf.data,
+            metadataPlist: item.metadataPlist)
     }
 
     /// Maps AppStoreCore's ent/download song info onto the LiveContainer model.
@@ -183,10 +191,11 @@ final class IPAToolIOSService {
         }
         let metadata = info["metadata"] as? [String: Any] ?? [:]
         let metadataPlist = try PropertyListSerialization.data(fromPropertyList: metadata, format: .xml, options: 0)
-        return IPAToolIOSStoreItem(url: url,
-                                   md5: info["md5"] as? String ?? "",
-                                   signatures: signatures,
-                                   metadataPlist: metadataPlist)
+        return IPAToolIOSStoreItem(
+            url: url,
+            md5: info["md5"] as? String ?? "",
+            signatures: signatures,
+            metadataPlist: metadataPlist)
     }
 
     // MARK: - Error mapping
@@ -199,7 +208,7 @@ final class IPAToolIOSService {
             case .invalidCredentials: return .invalidCredentials
             case .notAuthenticated: return .notAuthenticated
             case .licenseRequired: return .invalidLicense
-            case let .message(message): return .serverMessage(message)
+            case .message(let message): return .serverMessage(message)
             }
         }
         if let message = error as? String { return .serverMessage(message) }
@@ -220,9 +229,11 @@ private final class IPAToolIOSDownloadOperation: NSObject, URLSessionDownloadDel
     private var progressHandler: (@Sendable (Double) -> Void)?
     private var continuation: CheckedContinuation<Void, Error>?
 
-    func download(from sourceURL: URL,
-                  to destinationURL: URL,
-                  progress: @escaping @Sendable (Double) -> Void) async throws {
+    func download(
+        from sourceURL: URL,
+        to destinationURL: URL,
+        progress: @escaping @Sendable (Double) -> Void
+    ) async throws {
         self.destinationURL = destinationURL
         progressHandler = progress
 
@@ -237,24 +248,29 @@ private final class IPAToolIOSDownloadOperation: NSObject, URLSessionDownloadDel
         }
     }
 
-    func urlSession(_ session: URLSession,
-                    downloadTask: URLSessionDownloadTask,
-                    didWriteData bytesWritten: Int64,
-                    totalBytesWritten: Int64,
-                    totalBytesExpectedToWrite: Int64) {
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didWriteData bytesWritten: Int64,
+        totalBytesWritten: Int64,
+        totalBytesExpectedToWrite: Int64
+    ) {
         guard totalBytesExpectedToWrite > 0 else { return }
         progressHandler?(min(1, max(0, Double(totalBytesWritten) / Double(totalBytesExpectedToWrite))))
     }
 
-    func urlSession(_ session: URLSession,
-                    downloadTask: URLSessionDownloadTask,
-                    didFinishDownloadingTo location: URL) {
+    func urlSession(
+        _ session: URLSession,
+        downloadTask: URLSessionDownloadTask,
+        didFinishDownloadingTo location: URL
+    ) {
         guard let destinationURL else {
             finish(.failure(IPAToolIOSError.downloadFailed("missing destination")))
             return
         }
         if let response = downloadTask.response as? HTTPURLResponse,
-           !(200..<300).contains(response.statusCode) {
+            !(200..<300).contains(response.statusCode)
+        {
             finish(.failure(IPAToolIOSError.downloadFailed("HTTP \(response.statusCode)")))
             return
         }
@@ -268,9 +284,11 @@ private final class IPAToolIOSDownloadOperation: NSObject, URLSessionDownloadDel
         }
     }
 
-    func urlSession(_ session: URLSession,
-                    task: URLSessionTask,
-                    didCompleteWithError error: Error?) {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
         if let error { finish(.failure(error)) }
     }
 
@@ -283,7 +301,7 @@ private final class IPAToolIOSDownloadOperation: NSObject, URLSessionDownloadDel
         session = nil
         switch result {
         case .success: continuation.resume()
-        case let .failure(error): continuation.resume(throwing: error)
+        case .failure(let error): continuation.resume(throwing: error)
         }
     }
 }

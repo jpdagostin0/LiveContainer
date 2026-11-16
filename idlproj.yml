@@ -44,6 +44,29 @@ defaults:
     exclude: [ZSign, litehook, LiveContainer/Tweaks/mach_excServer.c]
   format:
     exclude: [ZSign, litehook, AppStoreAuth, LiveContainer/Tweaks/mach_excServer.c]
+    clang_format:
+      DerivePointerAlignment: true
+      PointerAlignment: Right
+      AllowShortIfStatementsOnASingleLine: WithoutElse
+      AllowShortBlocksOnASingleLine: Always
+      AllowShortFunctionsOnASingleLine: All
+      AllowShortLoopsOnASingleLine: true
+      AllowShortCaseLabelsOnASingleLine: true
+      IndentCaseLabels: true
+      ObjCSpaceAfterProperty: false
+      SpacesBeforeTrailingComments: 1
+      AlignTrailingComments: false
+      AlignConsecutiveMacros: None
+      AlignEscapedNewlines: DontAlign
+      AlignOperands: DontAlign
+      MaxEmptyLinesToKeep: 2
+      KeepEmptyLines:
+        AtStartOfBlock: true
+        AtStartOfFile: true
+        AtEndOfFile: true
+      BreakBeforeBraces: Attach
+      ReflowComments: Never
+      ObjCBreakBeforeNestedBlockParam: false
   plist_vars:
     DEVELOPMENT_TEAM: AAAAA11111
     AppIdentifierPrefix: "AAAAA11111."

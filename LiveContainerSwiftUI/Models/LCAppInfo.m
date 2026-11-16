@@ -10,23 +10,23 @@
 
 @implementation LCAppInfo
 
-- (instancetype)initWithBundlePath:(NSString*)bundlePath {
+- (instancetype)initWithBundlePath:(NSString *)bundlePath {
     self = [super init];
     self.isShared = false;
-	if(self) {
+    if (self) {
         _bundlePath = bundlePath;
         _infoPlist = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath]];
         _info = [NSMutableDictionary dictionaryWithContentsOfFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", bundlePath]];
-        if(!_info) {
+        if (!_info) {
             _info = [[NSMutableDictionary alloc] init];
         }
-        if(!_infoPlist) {
+        if (!_infoPlist) {
             _infoPlist = [[NSMutableDictionary alloc] init];
         }
-        
+
         // migrate old appInfo
-        if(_infoPlist[@"LCPatchRevision"] && [_info count] == 0) {
-            NSArray* lcAppInfoKeys = @[
+        if (_infoPlist[@"LCPatchRevision"] && [_info count] == 0) {
+            NSArray *lcAppInfoKeys = @[
                 @"LCPatchRevision",
                 @"LCOrignalBundleIdentifier",
                 @"LCDataUUID",
@@ -48,14 +48,14 @@
                 @"hideLiveContainer",
                 @"jitLaunchScriptJs"
             ];
-            for(NSString* key in lcAppInfoKeys) {
+            for (NSString *key in lcAppInfoKeys) {
                 _info[key] = _infoPlist[key];
                 [_infoPlist removeObjectForKey:key];
             }
             [_infoPlist writeBinToFile:[NSString stringWithFormat:@"%@/Info.plist", bundlePath] atomically:YES];
             [self save];
         }
-        
+
         // fix bundle id and execName if crash when signing
         if (_infoPlist[@"LCBundleIdentifier"]) {
             _infoPlist[@"CFBundleExecutable"] = _infoPlist[@"LCBundleExecutable"];
@@ -70,34 +70,34 @@
     return self;
 }
 
-- (void)setBundlePath:(NSString*)newBundlePath {
+- (void)setBundlePath:(NSString *)newBundlePath {
     _bundlePath = newBundlePath;
 }
 
-- (NSMutableArray<NSString *>*)urlSchemes {
+- (NSMutableArray<NSString *> *)urlSchemes {
     // find all url schemes
-    NSMutableArray* urlSchemes = [[NSMutableArray alloc] init];
+    NSMutableArray *urlSchemes = [[NSMutableArray alloc] init];
     int nowSchemeCount = 0;
     if (_infoPlist[@"CFBundleURLTypes"]) {
-        NSMutableArray* urlTypes = _infoPlist[@"CFBundleURLTypes"];
+        NSMutableArray *urlTypes = _infoPlist[@"CFBundleURLTypes"];
 
-        for(int i = 0; i < [urlTypes count]; ++i) {
-            NSMutableDictionary* nowUrlType = [urlTypes objectAtIndex:i];
-            if (!nowUrlType[@"CFBundleURLSchemes"]){
+        for (int i = 0; i < [urlTypes count]; ++i) {
+            NSMutableDictionary *nowUrlType = [urlTypes objectAtIndex:i];
+            if (!nowUrlType[@"CFBundleURLSchemes"]) {
                 continue;
             }
             NSMutableArray *schemes = nowUrlType[@"CFBundleURLSchemes"];
-            for(int j = 0; j < [schemes count]; ++j) {
+            for (int j = 0; j < [schemes count]; ++j) {
                 [urlSchemes insertObject:[schemes objectAtIndex:j] atIndex:nowSchemeCount];
                 ++nowSchemeCount;
             }
         }
     }
-    
+
     return urlSchemes;
 }
 
-- (NSString*)displayName {
+- (NSString *)displayName {
     if (_infoPlist[@"CFBundleDisplayName"]) {
         return _infoPlist[@"CFBundleDisplayName"];
     } else if (_infoPlist[@"CFBundleName"]) {
@@ -109,37 +109,37 @@
     }
 }
 
-- (NSString*)version {
-    NSString* version = _infoPlist[@"CFBundleShortVersionString"];
+- (NSString *)version {
+    NSString *version = _infoPlist[@"CFBundleShortVersionString"];
     if (!version) {
         version = _infoPlist[@"CFBundleVersion"];
     }
-    if(version) {
+    if (version) {
         return version;
     } else {
         return @"Unknown";
     }
 }
 
-- (NSString*)bundleIdentifier {
-    NSString* ans = nil;
-    if([self doUseLCBundleId]) {
+- (NSString *)bundleIdentifier {
+    NSString *ans = nil;
+    if ([self doUseLCBundleId]) {
         ans = _info[@"LCOrignalBundleIdentifier"];
     } else {
         ans = _infoPlist[@"CFBundleIdentifier"];
     }
-    if(ans) {
+    if (ans) {
         return ans;
     } else {
         return @"Unknown";
     }
 }
 
-- (NSString*)dataUUID {
+- (NSString *)dataUUID {
     return _info[@"LCDataUUID"];
 }
 
-- (NSString*)tweakFolder {
+- (NSString *)tweakFolder {
     return _info[@"LCTweakFolder"];
 }
 
@@ -153,71 +153,70 @@
     [self save];
 }
 
-- (NSString*)selectedLanguage {
+- (NSString *)selectedLanguage {
     return _info[@"LCSelectedLanguage"];
 }
 
 - (void)setSelectedLanguage:(NSString *)selectedLanguage {
-    if([selectedLanguage isEqualToString: @""]) {
+    if ([selectedLanguage isEqualToString:@""]) {
         _info[@"LCSelectedLanguage"] = nil;
     } else {
         _info[@"LCSelectedLanguage"] = selectedLanguage;
     }
-    
+
     [self save];
 }
 
-- (NSString*)bundlePath {
+- (NSString *)bundlePath {
     return _bundlePath;
 }
 
-- (NSMutableDictionary*)info {
+- (NSMutableDictionary *)info {
     return _info;
 }
 
-- (UIImage*)iconIsDarkIcon:(BOOL)isDarkIcon {
+- (UIImage *)iconIsDarkIcon:(BOOL)isDarkIcon {
     // if icon is already loaded in memory, return it
-    if(_cachedIcon && !isDarkIcon) {
+    if (_cachedIcon && !isDarkIcon) {
         return _cachedIcon;
     } else if (_cachedIconDark && isDarkIcon) {
         return _cachedIconDark;
     }
-    
+
     // check if icon is cached on disk
-    UIImage* uiIcon;
-    NSString* cachedIconPath;
-    if(isDarkIcon) {
+    UIImage *uiIcon;
+    NSString *cachedIconPath;
+    if (isDarkIcon) {
         cachedIconPath = [_bundlePath stringByAppendingPathComponent:@"LCAppIconDark.png"];
     } else {
         cachedIconPath = [_bundlePath stringByAppendingPathComponent:@"LCAppIconLight.png"];
     }
-    NSURL* cachedIconUrl = [NSURL fileURLWithPath:cachedIconPath];
-    
-    if([NSFileManager.defaultManager fileExistsAtPath:cachedIconPath]) {
+    NSURL *cachedIconUrl = [NSURL fileURLWithPath:cachedIconPath];
+
+    if ([NSFileManager.defaultManager fileExistsAtPath:cachedIconPath]) {
         CGImageRef imageRef = loadCGImageFromURL(cachedIconUrl);
         uiIcon = [UIImage imageWithCGImage:imageRef];
     }
-    
+
     // generate and save icon cache to disk
-    if(!uiIcon) {
+    if (!uiIcon) {
         uiIcon = [UIImage generateIconForBundleURL:[NSURL fileURLWithPath:_bundlePath] style:isDarkIcon hasBorder:YES];
         saveCGImage([uiIcon CGImage], cachedIconUrl);
     }
-    
+
     // cache icon to memory
-    if(isDarkIcon) {
+    if (isDarkIcon) {
         _cachedIconDark = uiIcon;
     } else {
         _cachedIcon = uiIcon;
     }
 
     return uiIcon;
-
 }
 
 - (void)clearIconCache {
-    NSString* lightModeIconPath = [_bundlePath stringByAppendingPathComponent:@"LCAppIconLight.png"];
-    NSString* darkModeIconPath = [_bundlePath stringByAppendingPathComponent:@"LCAppIconDark.png"];
+    NSString *lightModeIconPath = [_bundlePath stringByAppendingPathComponent:@"LCAppIconLight.png"];
+    NSString *darkModeIconPath = [_bundlePath stringByAppendingPathComponent:@"LCAppIconDark.png"];
     [NSFileManager.defaultManager removeItemAtPath:lightModeIconPath error:nil];
     [NSFileManager.defaultManager removeItemAtPath:darkModeIconPath error:nil];
     [self setCachedColor:nil];
@@ -227,7 +226,7 @@
 }
 
 - (UIImage *)generateLiveContainerWrappedIconWithStyle:(GeneratedIconStyle)style {
-    UIImage* icon = [UIImage generateIconForBundleURL:[NSURL fileURLWithPath:_bundlePath] style:style hasBorder:NO];
+    UIImage *icon = [UIImage generateIconForBundleURL:[NSURL fileURLWithPath:_bundlePath] style:style hasBorder:NO];
     if (![NSUserDefaults.standardUserDefaults boolForKey:@"LCFrameShortcutIcons"]) {
         return icon;
     }
@@ -244,56 +243,55 @@
     return newIcon;
 }
 
-- (NSDictionary *)generateWebClipConfigWithContainerId:(NSString*)containerId iconStyle:(GeneratedIconStyle)style{
-    NSString* appClipUrl;
-    if(containerId) {
+- (NSDictionary *)generateWebClipConfigWithContainerId:(NSString *)containerId iconStyle:(GeneratedIconStyle)style {
+    NSString *appClipUrl;
+    if (containerId) {
         appClipUrl = [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@&container-folder-name=%@", self.bundlePath.lastPathComponent, containerId];
     } else {
         appClipUrl = [NSString stringWithFormat:@"livecontainer://livecontainer-launch?bundle-name=%@", self.bundlePath.lastPathComponent];
     }
-    
-    UIImage* icon = [self generateLiveContainerWrappedIconWithStyle:style];
-    
+
+    UIImage *icon = [self generateLiveContainerWrappedIconWithStyle:style];
+
     NSDictionary *payload = @{
-        @"FullScreen": @YES,
-        @"Icon": UIImagePNGRepresentation(icon),
-        @"IgnoreManifestScope": @YES,
-        @"IsRemovable": @YES,
-        @"Label": self.displayName,
-        @"PayloadDescription": [NSString stringWithFormat:@"Web Clip for launching %@ (%@) in LiveContainer", self.displayName, self.bundlePath.lastPathComponent],
-        @"PayloadDisplayName": self.displayName,
-        @"PayloadIdentifier": self.bundleIdentifier,
-        @"PayloadType": @"com.apple.webClip.managed",
-        @"PayloadUUID": NSUUID.UUID.UUIDString,
-        @"PayloadVersion": @(1),
-        @"Precomposed": @NO,
-        @"toPayloadOrganization": @"LiveContainer",
-        @"URL": appClipUrl
+        @"FullScreen" : @YES,
+        @"Icon" : UIImagePNGRepresentation(icon),
+        @"IgnoreManifestScope" : @YES,
+        @"IsRemovable" : @YES,
+        @"Label" : self.displayName,
+        @"PayloadDescription" : [NSString stringWithFormat:@"Web Clip for launching %@ (%@) in LiveContainer", self.displayName, self.bundlePath.lastPathComponent],
+        @"PayloadDisplayName" : self.displayName,
+        @"PayloadIdentifier" : self.bundleIdentifier,
+        @"PayloadType" : @"com.apple.webClip.managed",
+        @"PayloadUUID" : NSUUID.UUID.UUIDString,
+        @"PayloadVersion" : @(1),
+        @"Precomposed" : @NO,
+        @"toPayloadOrganization" : @"LiveContainer",
+        @"URL" : appClipUrl
     };
     return @{
-        @"ConsentText": @{
-            @"default": [NSString stringWithFormat:@"This profile installs a web clip which opens %@ (%@) in LiveContainer", self.displayName, self.bundlePath.lastPathComponent]
+        @"ConsentText" : @{
+            @"default" : [NSString stringWithFormat:@"This profile installs a web clip which opens %@ (%@) in LiveContainer", self.displayName, self.bundlePath.lastPathComponent]
         },
-        @"PayloadContent": @[payload],
-        @"PayloadDescription": payload[@"PayloadDescription"],
-        @"PayloadDisplayName": self.displayName,
-        @"PayloadIdentifier": self.bundleIdentifier,
-        @"PayloadOrganization": @"LiveContainer",
-        @"PayloadRemovalDisallowed": @(NO),
-        @"PayloadType": @"Configuration",
-        @"PayloadUUID": @"345097fb-d4f7-4a34-ab90-2e3f1ad62eed",
-        @"PayloadVersion": @(1),
+        @"PayloadContent" : @[ payload ],
+        @"PayloadDescription" : payload[@"PayloadDescription"],
+        @"PayloadDisplayName" : self.displayName,
+        @"PayloadIdentifier" : self.bundleIdentifier,
+        @"PayloadOrganization" : @"LiveContainer",
+        @"PayloadRemovalDisallowed" : @(NO),
+        @"PayloadType" : @"Configuration",
+        @"PayloadUUID" : @"345097fb-d4f7-4a34-ab90-2e3f1ad62eed",
+        @"PayloadVersion" : @(1),
     };
 }
 
 - (void)save {
-    if(!_autoSaveDisabled) {
+    if (!_autoSaveDisabled) {
         [_info writeBinToFile:[NSString stringWithFormat:@"%@/LCAppInfo.plist", _bundlePath] atomically:YES];
     }
-
 }
 
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign {
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void (^)(bool success, NSString *errorInfo))completetionHandler progressHandler:(void (^)(NSProgress *progress))progressHandler forceSign:(BOOL)forceSign {
     [NSUserDefaults.standardUserDefaults setObject:@(YES) forKey:@"SigningInProgress"];
     NSString *appPath = self.bundlePath;
 
@@ -304,9 +302,9 @@
         completetionHandler(NO, @"Info.plist not found");
         return;
     }
-    NSFileManager* fm = NSFileManager.defaultManager;
+    NSFileManager *fm = NSFileManager.defaultManager;
     NSString *execPath = [NSString stringWithFormat:@"%@/%@", appPath, _infoPlist[@"CFBundleExecutable"]];
-    
+
     // Update patch
     int currentPatchRev = 7;
     bool needPatch = [info[@"LCPatchRevision"] intValue] < currentPatchRev;
@@ -318,20 +316,20 @@
         [fm removeItemAtPath:execPath error:&err];
         [fm moveItemAtPath:backupPath toPath:execPath error:&err];
     }
-    
+
     bool is32bit = false;
     if (needPatch) {
         __block bool has64bitSlice = NO;
         __block bool isEncrypted = false;
-        NSString *error = LCParseMachO(execPath.UTF8String, false, ^(const char *path, struct mach_header_64 *header, int fd, void* filePtr) {
-            if(header->cputype == CPU_TYPE_ARM64) {
+        NSString *error = LCParseMachO(execPath.UTF8String, false, ^(const char *path, struct mach_header_64 *header, int fd, void *filePtr) {
+            if (header->cputype == CPU_TYPE_ARM64) {
                 has64bitSlice |= YES;
                 int patchResult = LCPatchExecSlice(path, header, ![self dontInjectTweakLoader]);
-                if(patchResult & PATCH_EXEC_RESULT_NO_SPACE_FOR_TWEAKLOADER) {
+                if (patchResult & PATCH_EXEC_RESULT_NO_SPACE_FOR_TWEAKLOADER) {
                     info[@"LCTweakLoaderCantInject"] = @YES;
                     info[@"dontInjectTweakLoader"] = @YES;
                 }
-                if(patchResult & PATCH_EXEC_RESULT_SEG_COUNT_MISMATCH) {
+                if (patchResult & PATCH_EXEC_RESULT_SEG_COUNT_MISMATCH) {
                     info[@"segCountMismatch"] = @YES;
                 }
             }
@@ -362,7 +360,7 @@
         }
         info[@"LCPatchRevision"] = @(currentPatchRev);
         forceSign = true;
-        
+
         [self save];
     }
 
@@ -373,47 +371,46 @@
     }
 
     // check if iOS think this app's signature is valid, if so, we can skip any further signature check
-    NSString* executablePath = [appPath stringByAppendingPathComponent:infoPlist[@"CFBundleExecutable"]];
-    if(!forceSign) {
+    NSString *executablePath = [appPath stringByAppendingPathComponent:infoPlist[@"CFBundleExecutable"]];
+    if (!forceSign) {
         bool signatureValid = checkCodeSignature(executablePath.UTF8String);
-        
-        if(signatureValid) {
+
+        if (signatureValid) {
             [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
             completetionHandler(YES, nil);
             return;
         }
     }
-    
+
     if (!LCUtils.certificateData) {
         [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
         completetionHandler(NO, @"lc.signer.noCertificateFoundErr");
         return;
     }
-    
-    // Sign app if JIT-less is set up
-        NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
-            void (^signCompletionHandler)(BOOL success, NSError *error)  = ^(BOOL success, NSError *_Nullable error) {
-                dispatch_async(dispatch_get_main_queue(), ^{
-                    [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
-                    if(!success) {
-                        completetionHandler(NO, error.localizedDescription);
-                    } else {
-                        bool signatureValid = checkCodeSignature(executablePath.UTF8String);
-                        if(signatureValid) {
-                            completetionHandler(YES, [error localizedDescription]);
-                        } else {
-                            completetionHandler(NO, @"lc.signer.latestCertificateInvalidErr");
-                        }
-                    }
-                    
-                });
-            };
-            
-            __block NSProgress *progress = [LCUtils signAppBundleWithZSign:appPathURL completionHandler:signCompletionHandler];
 
-            if (progress) {
-                progressHandler(progress);
+    // Sign app if JIT-less is set up
+    NSURL *appPathURL = [NSURL fileURLWithPath:appPath];
+    void (^signCompletionHandler)(BOOL success, NSError *error) = ^(BOOL success, NSError *_Nullable error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [NSUserDefaults.standardUserDefaults removeObjectForKey:@"SigningInProgress"];
+            if (!success) {
+                completetionHandler(NO, error.localizedDescription);
+            } else {
+                bool signatureValid = checkCodeSignature(executablePath.UTF8String);
+                if (signatureValid) {
+                    completetionHandler(YES, [error localizedDescription]);
+                } else {
+                    completetionHandler(NO, @"lc.signer.latestCertificateInvalidErr");
+                }
             }
+        });
+    };
+
+    __block NSProgress *progress = [LCUtils signAppBundleWithZSign:appPathURL completionHandler:signCompletionHandler];
+
+    if (progress) {
+        progressHandler(progress);
+    }
 }
 
 - (NSString *)patchGuestExtensions {
@@ -432,7 +429,7 @@
         NSError *fileError = nil;
         [fm removeItemAtPath:temporaryPath error:nil];
         if (![fm copyItemAtPath:path toPath:temporaryPath error:&fileError]) return fileError.localizedDescription;
-        
+
         __block BOOL hasARM64 = NO;
         __block BOOL encrypted = NO;
         __block BOOL mismatch = NO;
@@ -453,13 +450,13 @@
         [fm removeItemAtPath:temporaryPath error:nil];
         if (error) return error;
         // Keep extension-specific loader information separate from the app's.
-        [@{@"segCountMismatch": @(mismatch)} writeToFile:[bundlePath stringByAppendingPathComponent:@"LCAppExtension.plist"] atomically:YES];
+        [@{@"segCountMismatch" : @(mismatch)} writeToFile:[bundlePath stringByAppendingPathComponent:@"LCAppExtension.plist"] atomically:YES];
     }
     return nil;
 }
 
 - (bool)isJITNeeded {
-    if(_info[@"isJITNeeded"] != nil) {
+    if (_info[@"isJITNeeded"] != nil) {
         return [_info[@"isJITNeeded"] boolValue];
     } else {
         return NO;
@@ -478,7 +475,6 @@
 - (void)setIsJITNeeded:(bool)isJITNeeded {
     _info[@"isJITNeeded"] = [NSNumber numberWithBool:isJITNeeded];
     [self save];
-    
 }
 
 - (bool)classicMode {
@@ -488,7 +484,7 @@
 - (void)setClassicMode:(bool)classicMode {
     _info[@"classicMode"] = @(classicMode);
 
-    if(classicMode) {
+    if (classicMode) {
         [self defaultClassicMode];
     } else {
         _info[@"LCClassicModeCache"] = nil;
@@ -497,7 +493,7 @@
 }
 
 - (NSUInteger)defaultClassicMode {
-    if(!self.classicMode) {
+    if (!self.classicMode) {
         return 0;
     }
 
@@ -505,9 +501,9 @@
     NSDictionary *cache = _info[@"LCClassicModeCache"];
     NSNumber *cachedMode = cache[@"defaultClassicMode"];
     NSNumber *cachedSystemMajorVersion = cache[@"systemMajorVersion"];
-    if([cachedMode isKindOfClass:NSNumber.class] &&
-       [cachedSystemMajorVersion isKindOfClass:NSNumber.class] &&
-       cachedSystemMajorVersion.integerValue == systemMajorVersion) {
+    if ([cachedMode isKindOfClass:NSNumber.class] &&
+        [cachedSystemMajorVersion isKindOfClass:NSNumber.class] &&
+        cachedSystemMajorVersion.integerValue == systemMajorVersion) {
         return cachedMode.unsignedIntegerValue;
     }
 
@@ -515,15 +511,15 @@
     NSNumber *mode = LCGetDefaultClassicMode([NSURL fileURLWithPath:self.bundlePath]);
 
     _info[@"LCClassicModeCache"] = @{
-        @"defaultClassicMode": mode,
-        @"systemMajorVersion": @(systemMajorVersion),
+        @"defaultClassicMode" : mode,
+        @"systemMajorVersion" : @(systemMajorVersion),
     };
     [self save];
     return mode.unsignedIntegerValue;
 }
 
 - (bool)isLocked {
-    if(_info[@"isLocked"] != nil) {
+    if (_info[@"isLocked"] != nil) {
         return [_info[@"isLocked"] boolValue];
     } else {
         return NO;
@@ -532,11 +528,10 @@
 - (void)setIsLocked:(bool)isLocked {
     _info[@"isLocked"] = [NSNumber numberWithBool:isLocked];
     [self save];
-    
 }
 
 - (bool)isHidden {
-    if(_info[@"isHidden"] != nil) {
+    if (_info[@"isHidden"] != nil) {
         return [_info[@"isHidden"] boolValue];
     } else {
         return NO;
@@ -545,11 +540,10 @@
 - (void)setIsHidden:(bool)isHidden {
     _info[@"isHidden"] = [NSNumber numberWithBool:isHidden];
     [self save];
-    
 }
 
 - (bool)doSymlinkInbox {
-    if(_info[@"doSymlinkInbox"] != nil) {
+    if (_info[@"doSymlinkInbox"] != nil) {
         return [_info[@"doSymlinkInbox"] boolValue];
     } else {
         return NO;
@@ -558,11 +552,10 @@
 - (void)setDoSymlinkInbox:(bool)doSymlinkInbox {
     _info[@"doSymlinkInbox"] = [NSNumber numberWithBool:doSymlinkInbox];
     [self save];
-    
 }
 
 - (bool)hideLiveContainer {
-    if(_info[@"hideLiveContainer"] != nil) {
+    if (_info[@"hideLiveContainer"] != nil) {
         return [_info[@"hideLiveContainer"] boolValue];
     } else {
         return NO;
@@ -574,17 +567,17 @@
 }
 
 - (bool)dontInjectTweakLoader {
-    if(_info[@"dontInjectTweakLoader"] != nil) {
+    if (_info[@"dontInjectTweakLoader"] != nil) {
         return [_info[@"dontInjectTweakLoader"] boolValue];
     } else {
         return NO;
     }
 }
 - (void)setDontInjectTweakLoader:(bool)dontInjectTweakLoader {
-    if([_info[@"dontInjectTweakLoader"] boolValue] == dontInjectTweakLoader) {
+    if ([_info[@"dontInjectTweakLoader"] boolValue] == dontInjectTweakLoader) {
         return;
     }
-    
+
     _info[@"dontInjectTweakLoader"] = [NSNumber numberWithBool:dontInjectTweakLoader];
     // we have to update patch to achieve this
     _info[@"LCPatchRevision"] = @(-1);
@@ -592,7 +585,7 @@
 }
 
 - (bool)dontLoadTweakLoader {
-    if(_info[@"dontLoadTweakLoader"] != nil) {
+    if (_info[@"dontLoadTweakLoader"] != nil) {
         return [_info[@"dontLoadTweakLoader"] boolValue];
     } else {
         return NO;
@@ -604,7 +597,7 @@
 }
 
 - (bool)doUseLCBundleId {
-    if(_info[@"doUseLCBundleId"] != nil) {
+    if (_info[@"doUseLCBundleId"] != nil) {
         return [_info[@"doUseLCBundleId"] boolValue];
     } else {
         return NO;
@@ -613,7 +606,7 @@
 - (void)setDoUseLCBundleId:(bool)doUseLCBundleId {
     _info[@"doUseLCBundleId"] = [NSNumber numberWithBool:doUseLCBundleId];
     NSString *infoPath = [NSString stringWithFormat:@"%@/Info.plist", self.bundlePath];
-    if(doUseLCBundleId) {
+    if (doUseLCBundleId) {
         _info[@"LCOrignalBundleIdentifier"] = _infoPlist[@"CFBundleIdentifier"];
         _infoPlist[@"CFBundleIdentifier"] = NSBundle.mainBundle.bundleIdentifier;
     } else if (_info[@"LCOrignalBundleIdentifier"]) {
@@ -625,7 +618,7 @@
 }
 
 - (bool)fixFilePickerNew {
-    if(_info[@"fixFilePickerNew"] != nil) {
+    if (_info[@"fixFilePickerNew"] != nil) {
         return [_info[@"fixFilePickerNew"] boolValue];
     } else {
         return NO;
@@ -638,7 +631,7 @@
 }
 
 - (bool)fixLocalNotification {
-    if(_info[@"fixLocalNotification"] != nil) {
+    if (_info[@"fixLocalNotification"] != nil) {
         return [_info[@"fixLocalNotification"] boolValue];
     } else {
         return NO;
@@ -660,25 +653,25 @@
 }
 
 - (LCOrientationLock)orientationLock {
-    return (LCOrientationLock) [((NSNumber*) _info[@"LCOrientationLock"]) intValue];
+    return (LCOrientationLock)[((NSNumber *)_info[@"LCOrientationLock"])intValue];
 }
 - (void)setOrientationLock:(LCOrientationLock)orientationLock {
-    _info[@"LCOrientationLock"] = [NSNumber numberWithInt:(int) orientationLock];
+    _info[@"LCOrientationLock"] = [NSNumber numberWithInt:(int)orientationLock];
     [self save];
 }
 
 - (MultitaskSpecified)multitaskSpecified {
-    return (LCOrientationLock) [((NSNumber*) _info[@"MultitaskSpecified"]) intValue];
+    return (LCOrientationLock)[((NSNumber *)_info[@"MultitaskSpecified"])intValue];
 }
 - (void)setMultitaskSpecified:(MultitaskSpecified)multitaskSpecified {
-    _info[@"MultitaskSpecified"] = [NSNumber numberWithInt:(int) multitaskSpecified];
+    _info[@"MultitaskSpecified"] = [NSNumber numberWithInt:(int)multitaskSpecified];
     [self save];
 }
 
-- (UIColor*)cachedColor {
-    if(_info[@"cachedColor"] != nil) {
+- (UIColor *)cachedColor {
+    if (_info[@"cachedColor"] != nil) {
         NSData *colorData = _info[@"cachedColor"];
-        NSError* error;
+        NSError *error;
         UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:UIColor.class fromData:colorData error:&error];
         if (!error) {
             return color;
@@ -691,25 +684,24 @@
     }
 }
 
-- (void)setCachedColor:(UIColor*) color {
-    if(color == nil) {
+- (void)setCachedColor:(UIColor *)color {
+    if (color == nil) {
         _info[@"cachedColor"] = nil;
     } else {
-        NSError* error;
+        NSError *error;
         NSData *colorData = [NSKeyedArchiver archivedDataWithRootObject:color requiringSecureCoding:YES error:&error];
         [_info setObject:colorData forKey:@"cachedColor"];
-        if(error) {
+        if (error) {
             NSLog(@"[LC] failed to set color %@", error);
         }
-
     }
     [self save];
 }
 
-- (UIColor*)cachedColorDark {
-    if(_info[@"cachedColorDark"] != nil) {
+- (UIColor *)cachedColorDark {
+    if (_info[@"cachedColorDark"] != nil) {
         NSData *colorData = _info[@"cachedColorDark"];
-        NSError* error;
+        NSError *error;
         UIColor *color = [NSKeyedUnarchiver unarchivedObjectOfClass:UIColor.class fromData:colorData error:&error];
         if (!error) {
             return color;
@@ -722,22 +714,21 @@
     }
 }
 
-- (void)setCachedColorDark:(UIColor*)color {
-    if(color == nil) {
+- (void)setCachedColorDark:(UIColor *)color {
+    if (color == nil) {
         _info[@"cachedColorDark"] = nil;
     } else {
-        NSError* error;
+        NSError *error;
         NSData *colorData = [NSKeyedArchiver archivedDataWithRootObject:color requiringSecureCoding:YES error:&error];
         [_info setObject:colorData forKey:@"cachedColorDark"];
-        if(error) {
+        if (error) {
             NSLog(@"[LC] failed to set color %@", error);
         }
-
     }
     [self save];
 }
 
-- (NSArray<NSDictionary*>* )containerInfo {
+- (NSArray<NSDictionary *> *)containerInfo {
     return _info[@"LCContainers"];
 }
 
@@ -747,7 +738,7 @@
 }
 
 - (bool)is32bit {
-    if(_info[@"is32bit"] != nil) {
+    if (_info[@"is32bit"] != nil) {
         return [_info[@"is32bit"] boolValue];
     } else {
         return NO;
@@ -756,14 +747,13 @@
 - (void)setIs32bit:(bool)is32bit {
     _info[@"is32bit"] = [NSNumber numberWithBool:is32bit];
     [self save];
-    
 }
 - (bool)is32bitEmulator {
     return [_infoPlist[@"LC32BitTranslationLayer"] boolValue];
 }
 
 - (bool)dontSign {
-    if(_info[@"dontSign"] != nil) {
+    if (_info[@"dontSign"] != nil) {
         return [_info[@"dontSign"] boolValue];
     } else {
         return NO;
@@ -772,7 +762,6 @@
 - (void)setDontSign:(bool)dontSign {
     _info[@"dontSign"] = [NSNumber numberWithBool:dontSign];
     [self save];
-    
 }
 
 - (NSString *)jitLaunchScriptJs {
@@ -805,7 +794,7 @@
 }
 
 - (bool)spoofSDKVersion {
-    if(!_info[@"spoofSDKVersion"]) {
+    if (!_info[@"spoofSDKVersion"]) {
         return false;
     } else {
         return [_info[@"spoofSDKVersion"] unsignedIntValue] != 0;
@@ -813,7 +802,7 @@
 }
 
 - (void)setSpoofSDKVersion:(bool)doSpoof {
-    if(!doSpoof) {
+    if (!doSpoof) {
         _info[@"spoofSDKVersion"] = 0;
     } else {
         NSString *execPath = [NSString stringWithFormat:@"%@/%@", _bundlePath, _infoPlist[@"CFBundleExecutable"]];
@@ -833,30 +822,30 @@
     [self save];
 }
 
-- (NSDate*)lastLaunched {
+- (NSDate *)lastLaunched {
     return _info[@"lastLaunched"];
 }
 
-- (void)setLastLaunched:(NSDate*)lastLaunched {
+- (void)setLastLaunched:(NSDate *)lastLaunched {
     _info[@"lastLaunched"] = lastLaunched;
     [self save];
 }
 
-- (NSDate*)installationDate {
+- (NSDate *)installationDate {
     return _info[@"installationDate"];
 }
 
-- (void)setInstallationDate:(NSDate*)installationDate {
+- (void)setInstallationDate:(NSDate *)installationDate {
     _info[@"installationDate"] = installationDate;
     [self save];
 }
 
-- (NSString*)remark {
+- (NSString *)remark {
     return _info[@"remark"];
 }
 
 - (void)setRemark:(NSString *)remark {
-    if([remark isEqualToString: @""]) {
+    if ([remark isEqualToString:@""]) {
         _info[@"remark"] = nil;
     } else {
         _info[@"remark"] = remark;

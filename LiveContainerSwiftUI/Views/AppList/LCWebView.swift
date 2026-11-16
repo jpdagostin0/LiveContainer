@@ -8,10 +8,10 @@ import SwiftUI
 @preconcurrency import WebKit
 
 struct LCWebView: View {
-    @State private var webView : WebView
+    @State private var webView: WebView
     @State private var didAppear = false
-    
-    @Binding var url : URL
+
+    @Binding var url: URL
     @Binding var isPresent: Bool
     @State private var loadStatus = 0.0
     @State private var uiLoadStatus = 0.0
@@ -21,42 +21,44 @@ struct LCWebView: View {
     @State private var canGoForward = false
     @State private var isLoading = false
     @State private var showShareSheet = false
-    
+
     @State private var runAppAlert = YesNoHelper()
     @State private var runAppAlertMsg = ""
-    
+
     @State private var installAppAlert = YesNoHelper()
     @State private var installAppAlertMsg = ""
-    
+
     @State private var errorShow = false
     @State private var errorInfo = ""
-    
-    @EnvironmentObject private var sharedModel : SharedModel
+
+    @EnvironmentObject private var sharedModel: SharedModel
 
     private let navigationBarHeight: CGFloat = 60
     private let bottomBarHeight: CGFloat = 64
-    
+
     var itmsServicesHandler: ((String) async -> Void)?
-    
+
     init(url: Binding<URL>, isPresent: Binding<Bool>, itmsServicesHandler: ((String) async -> Void)? = nil) {
         self._webView = State(initialValue: WebView())
         self._url = url
         self._isPresent = isPresent
         self.itmsServicesHandler = itmsServicesHandler
     }
-    
+
     var body: some View {
-        
+
         GeometryReader { geometry in
             ZStack {
                 // Extend the web view itself under the bars and the home indicator.
                 // Scroll insets keep the first and last page content reachable.
-                webView.withContentInsets(UIEdgeInsets(
-                    top: geometry.safeAreaInsets.top + navigationBarHeight,
-                    left: geometry.safeAreaInsets.leading,
-                    bottom: geometry.safeAreaInsets.bottom + bottomBarHeight,
-                    right: geometry.safeAreaInsets.trailing
-                ))
+                webView.withContentInsets(
+                    UIEdgeInsets(
+                        top: geometry.safeAreaInsets.top + navigationBarHeight,
+                        left: geometry.safeAreaInsets.leading,
+                        bottom: geometry.safeAreaInsets.bottom + bottomBarHeight,
+                        right: geometry.safeAreaInsets.trailing
+                    )
+                )
                 .ignoresSafeArea(.container)
 
                 VStack(spacing: 0) {
@@ -79,35 +81,45 @@ struct LCWebView: View {
             ActivityViewController(activityItems: [currentURL])
         }
         .alert("lc.webView.runApp".loc, isPresented: $runAppAlert.show) {
-            Button("lc.appBanner.run".loc, action: {
-                runAppAlert.close(result: true)
-            })
-            Button("lc.common.cancel".loc, role: .cancel, action: {
-                runAppAlert.close(result: false)
-            })
+            Button(
+                "lc.appBanner.run".loc,
+                action: {
+                    runAppAlert.close(result: true)
+                })
+            Button(
+                "lc.common.cancel".loc, role: .cancel,
+                action: {
+                    runAppAlert.close(result: false)
+                })
         } message: {
             Text(runAppAlertMsg)
         }
         .alert("lc.webView.installApp".loc, isPresented: $installAppAlert.show) {
-            Button("lc.common.install".loc, action: {
-                installAppAlert.close(result: true)
-            })
-            Button("lc.common.cancel".loc, role: .cancel, action: {
-                installAppAlert.close(result: false)
-            })
+            Button(
+                "lc.common.install".loc,
+                action: {
+                    installAppAlert.close(result: true)
+                })
+            Button(
+                "lc.common.cancel".loc, role: .cancel,
+                action: {
+                    installAppAlert.close(result: false)
+                })
         } message: {
             Text(installAppAlertMsg)
         }
-        
+
         .alert("lc.common.error".loc, isPresented: $errorShow) {
-            Button("lc.common.ok".loc, action: {
-            })
+            Button(
+                "lc.common.ok".loc,
+                action: {
+                })
         } message: {
             Text(errorInfo)
         }
-        
+
     }
-    
+
     private var currentURL: URL {
         pageURL ?? url
     }
@@ -160,7 +172,7 @@ struct LCWebView: View {
             .font(.system(size: 20, weight: .medium))
             .frame(width: 44, height: 44)
             .modifier(LCWebViewGlassBackground(shape: Circle(), isInteractive: true))
-            
+
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
@@ -235,7 +247,7 @@ struct LCWebView: View {
 
     func launchToApp(app: LCAppModel, url: URL) async {
         let bundleId = app.appInfo.relativeBundlePath!
-        if let runningLC = LCSharedUtils.getContainerUsingLCScheme(withFolderName: app.uiDefaultDataFolder){
+        if let runningLC = LCSharedUtils.getContainerUsingLCScheme(withFolderName: app.uiDefaultDataFolder) {
             let encodedUrl = Data(url.absoluteString.utf8).base64EncodedString()
             if let urlToOpen = URL(string: "\(runningLC)://livecontainer-launch?bundle-name=\(bundleId)&open-url=\(encodedUrl)"), UIApplication.shared.canOpenURL(urlToOpen) {
                 NSLog("[LC] urlToOpen = \(urlToOpen.absoluteString)")
@@ -245,7 +257,7 @@ struct LCWebView: View {
             }
 
         }
-        
+
         do {
             try await app.runApp(urlStr: url.absoluteString)
         } catch {
@@ -253,14 +265,14 @@ struct LCWebView: View {
             errorShow = true
         }
     }
-    
+
     public func onURLSchemeDetected(url: URL) async {
-        var appToLaunch : LCAppModel? = nil
+        var appToLaunch: LCAppModel? = nil
         var appListsToConsider = [sharedModel.apps]
-        
+
         if url.scheme == "itms-services", let handler = itmsServicesHandler {
             installAppAlertMsg = "lc.webView.installAppDesc"
-            
+
             if let doInstall = await installAppAlert.open(), !doInstall {
                 return
             }
@@ -268,12 +280,11 @@ struct LCWebView: View {
             Task { await handler(url.absoluteString) }
             return
         }
-        
+
         if sharedModel.isHiddenAppUnlocked || !LCUtils.appGroupUserDefault.bool(forKey: "LCStrictHiding") {
             appListsToConsider.append(sharedModel.hiddenApps)
         }
-        appLoop:
-        for appList in appListsToConsider {
+        appLoop: for appList in appListsToConsider {
             for app in appList {
                 if let schemes = app.appInfo.urlSchemes() {
                     for scheme in schemes {
@@ -285,16 +296,16 @@ struct LCWebView: View {
                 }
             }
         }
-    
-        
+
+
         guard let appToLaunch = appToLaunch else {
             errorInfo = "lc.appList.schemeCannotOpenError %@".localizeWithFormat(url.scheme!)
             errorShow = true
             return
         }
-        
+
         if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
-            
+
             do {
                 if !(try await LCUtils.authenticateUser()) {
                     return
@@ -305,17 +316,17 @@ struct LCWebView: View {
                 return
             }
         }
-        
+
         runAppAlertMsg = "lc.webView.pageLaunch %@".localizeWithFormat(appToLaunch.appInfo.displayName()!)
-        
+
         if let doRunApp = await runAppAlert.open(), !doRunApp {
             return
         }
-        
+
         await launchToApp(app: appToLaunch, url: url)
-        
+
     }
-    
+
     public func onUniversalLinkDetected(url: URL, bundleIDs: [String]) async {
         var bundleIDToAppDict: [String: LCAppModel] = [:]
         for app in sharedModel.apps {
@@ -326,7 +337,7 @@ struct LCWebView: View {
                 bundleIDToAppDict[app.appInfo.bundleIdentifier()!] = app
             }
         }
-        
+
         var appToLaunch: LCAppModel? = nil
         for bundleID in bundleIDs {
             if let app = bundleIDToAppDict[bundleID] {
@@ -337,7 +348,7 @@ struct LCWebView: View {
         guard let appToLaunch = appToLaunch else {
             return
         }
-        
+
         if appToLaunch.appInfo.isLocked && !sharedModel.isHiddenAppUnlocked {
             do {
                 if !(try await LCUtils.authenticateUser()) {
@@ -349,7 +360,7 @@ struct LCWebView: View {
                 return
             }
         }
-        
+
         runAppAlertMsg = "lc.webView.pageCanBeOpenIn %@".localizeWithFormat(appToLaunch.appInfo.displayName()!)
         if let doRunApp = await runAppAlert.open(), !doRunApp {
             return
@@ -392,52 +403,54 @@ class WebViewLoadObserver: NSObject {
             },
             webView.observe(\.isLoading, options: [.initial, .new]) { webView, _ in
                 isLoading.wrappedValue = webView.isLoading
-            }
+            },
         ]
     }
 }
 
-class WebViewDelegate : NSObject,WKNavigationDelegate {
+class WebViewDelegate: NSObject, WKNavigationDelegate {
     private var pageTitle: Binding<String>
     private var urlSchemeHandler: (URL) async -> Void
-    private var universalLinkHandler: (URL , [String]) async -> Void // url, [String] of all apps that can open this web page
-    var domainBundleIdDict : [String:[String]] = [:]
-    
-    init(pageTitle: Binding<String>, urlSchemeHandler: @escaping (URL) async -> Void, universalLinkHandler: @escaping (URL , [String]) async -> Void) {
+    private var universalLinkHandler: (URL, [String]) async -> Void  // url, [String] of all apps that can open this web page
+    var domainBundleIdDict: [String: [String]] = [:]
+
+    init(pageTitle: Binding<String>, urlSchemeHandler: @escaping (URL) async -> Void, universalLinkHandler: @escaping (URL, [String]) async -> Void) {
         self.pageTitle = pageTitle
         self.urlSchemeHandler = urlSchemeHandler
         self.universalLinkHandler = universalLinkHandler
         super.init()
     }
-    
-    func webView(_ webView: WKWebView,
-                   decidePolicyFor navigationAction: WKNavigationAction,
-                   decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+    ) {
         decisionHandler((WKNavigationActionPolicy)(rawValue: WKNavigationActionPolicy.allow.rawValue + 2)!)
         guard let url = navigationAction.request.url, let scheme = navigationAction.request.url?.scheme else {
             return
         }
-        if(scheme == "https") {
+        if scheme == "https" {
             Task {
                 await self.loadDomainAssociations(url: url)
                 if let host = url.host, let appIDs = self.domainBundleIdDict[host] {
-                    Task{ await self.universalLinkHandler(url, appIDs) }
+                    Task { await self.universalLinkHandler(url, appIDs) }
                 }
             }
             return
         }
-        if(scheme == "http" || scheme == "about" || scheme == "itms-apps") {
-            return;
+        if scheme == "http" || scheme == "about" || scheme == "itms-apps" {
+            return
         }
-        Task{ await urlSchemeHandler(url) }
+        Task { await urlSchemeHandler(url) }
 
     }
-    
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         self.pageTitle.wrappedValue = webView.title ?? ""
     }
-    
-    
+
+
     func loadDomainAssociations(url: URL) async {
         if url.scheme != "https" || url.host == nil {
             return
@@ -448,12 +461,12 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
         guard let host = url.host else {
             return
         }
-        
+
         // download and read apple-app-site-association
         let appleAppSiteAssociationURLs = [
             URL(string: "https://\(host)/apple-app-site-association")!,
-            URL(string: "https://\(host)/.well-known/apple-app-site-association")!
-            ]
+            URL(string: "https://\(host)/.well-known/apple-app-site-association")!,
+        ]
 
         await withTaskGroup(of: Void.self) { group in
             for siteAssociationURL in appleAppSiteAssociationURLs {
@@ -475,11 +488,11 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
                                     self.domainBundleIdDict[host]!.append(contentsOf: item.getBundleIds())
                                 }
                             } catch {
-                                
+
                             }
                             c.resume()
                         }
-                        
+
                         task.resume()
                     }
                 }
@@ -490,25 +503,25 @@ class WebViewDelegate : NSObject,WKNavigationDelegate {
 }
 
 struct WebView: UIViewRepresentable {
-    
+
     let webView: WKWebView
     var observer: WebViewLoadObserver?
     var delegate: WKNavigationDelegate?
     private var contentInsets: UIEdgeInsets = .zero
-    
+
     init() {
         self.webView = WKWebView()
     }
-    
+
     mutating func setDelegate(delegete: WKNavigationDelegate) {
         self.delegate = delegete
         self.webView.navigationDelegate = delegete
     }
-    
+
     mutating func setObserver(observer: WebViewLoadObserver) {
         self.observer = observer
     }
-    
+
     func makeUIView(context: Context) -> WKWebView {
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
@@ -516,7 +529,7 @@ struct WebView: UIViewRepresentable {
         webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 Safari/604.1"
         return webView
     }
-    
+
     func updateUIView(_ uiView: WKWebView, context: Context) {
         let scrollView = uiView.scrollView
         guard scrollView.contentInset != contentInsets else {
@@ -535,24 +548,23 @@ struct WebView: UIViewRepresentable {
         view.contentInsets = insets
         return view
     }
-    
+
     func reload() {
         webView.reload()
     }
-    
-    func goBack(){
+
+    func goBack() {
         webView.goBack()
     }
-    
-    func goForward(){
+
+    func goForward() {
         webView.goForward()
     }
-    
-    
+
+
     func loadURL(url: URL) {
         webView.load(URLRequest(url: url))
     }
-    
+
 
 }
-

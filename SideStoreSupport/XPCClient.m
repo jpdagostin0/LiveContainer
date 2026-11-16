@@ -10,10 +10,10 @@
 #include "../LiveContainer/LCSharedUtils.h"
 @import UIKit;
 
-@interface SideStoreClient(Swift)
+@interface SideStoreClient (Swift)
 - (void)performRefreshForRealWithIdentifier:(NSString*)identifier
                             mangledTypeName:(NSString*)mangledTypeName
-                                     server:(id <RefreshServer> _Nonnull)server;
+                                     server:(id<RefreshServer> _Nonnull)server;
 
 @end
 
@@ -24,7 +24,7 @@
 - (void)provisionCertificateWithAppleID:(NSString*)appleID
                                password:(NSString*)password
                                    code:(NSString* _Nullable)code
-                               anisette:(NSDictionary<NSString*,NSString*>*)anisette
+                               anisette:(NSDictionary<NSString*, NSString*>*)anisette
                              completion:(void (^)(NSData* _Nullable certificate, NSString* _Nullable password, NSString* _Nullable error))completion;
 @end
 
@@ -44,12 +44,12 @@ void installSideStoreHooks(void);
 }
 
 + (void)load {
-    if(!NSUserDefaults.isSideStore) return;
-    
+    if (!NSUserDefaults.isSideStore) return;
+
     installSideStoreHooks();
-    
-    if(!NSUserDefaults.isLiveProcess) return;
-    
+
+    if (!NSUserDefaults.isLiveProcess) return;
+
     handler = [PrivClass(LiveProcessSideStoreHandler) shared];
     installSideStoreNotificationHooks();
     handler.connection.exportedInterface = RefreshClientInterface();
@@ -62,17 +62,17 @@ void installSideStoreHooks(void);
 }
 
 // Implement the callback method
-+ (void)appDidFinishLaunching:(NSNotification *)notification {
-    NSDictionary *launchOptions = notification.userInfo;
++ (void)appDidFinishLaunching:(NSNotification*)notification {
+    NSDictionary* launchOptions = notification.userInfo;
     [handler.server finishedLaunching];
 }
 
-- (void) relaunchLC {
+- (void)relaunchLC {
     [LCSharedUtils launchToGuestAppWithClassicMode:0];
 }
 
-- (void)refreshAllAppsWithIdentifier:(NSString*)identifier mangledTypeName:(NSString *)mangledTypeName {
-    if(!handler) {
+- (void)refreshAllAppsWithIdentifier:(NSString*)identifier mangledTypeName:(NSString*)mangledTypeName {
+    if (!handler) {
         return;
     }
     [self performRefreshForRealWithIdentifier:identifier mangledTypeName:mangledTypeName server:handler.server];
@@ -81,15 +81,15 @@ void installSideStoreHooks(void);
 - (void)provisionCertificateWithAppleID:(NSString*)appleID
                                password:(NSString*)password
                                    code:(NSString*)code
-                               anisette:(NSDictionary<NSString*,NSString*>*)anisette
+                               anisette:(NSDictionary<NSString*, NSString*>*)anisette
                                   reply:(void (^)(NSData* _Nullable, NSString* _Nullable, NSString* _Nullable))reply {
     Class bridgeClass = PrivClass(LCProvisioningBridge);
-    if(!bridgeClass) {
+    if (!bridgeClass) {
         reply(nil, nil, @"This SideStore build does not support LiveContainer certificate provisioning. Rebuild SideStore with LCProvisioningBridge.");
         return;
     }
     id bridge = [bridgeClass performSelector:@selector(shared)];
-    if(!bridge) {
+    if (!bridge) {
         reply(nil, nil, @"LCProvisioningBridge is unavailable.");
         return;
     }
@@ -100,8 +100,8 @@ void installSideStoreHooks(void);
                                        code:code
                                    anisette:anisette
                                  completion:^(NSData* certificate, NSString* certPassword, NSString* error) {
-        reply(certificate, certPassword, error);
-    }];
+                                     reply(certificate, certPassword, error);
+                                 }];
 }
 
 @end

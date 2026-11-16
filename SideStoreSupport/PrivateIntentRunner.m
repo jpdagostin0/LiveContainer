@@ -9,11 +9,10 @@
 static NSString *const PrivateIntentErrorDomain = @"PrivateIntentRunner";
 
 
-
 static NSError *PrivateIntentError(NSInteger code, NSString *description) {
     return [NSError errorWithDomain:PrivateIntentErrorDomain
                                code:code
-                           userInfo:@{NSLocalizedDescriptionKey: description}];
+                           userInfo:@{NSLocalizedDescriptionKey : description}];
 }
 
 @implementation PrivateIntentRunner
@@ -32,16 +31,16 @@ static NSError *PrivateIntentError(NSInteger code, NSString *description) {
         return nil;
     }
 
-    LNAction* action = [[actionClass alloc] initWithIdentifier:identifier
-                                                    mangledTypeName:mangledTypeName
-                                                      openAppWhenRun:NO
-                                                         parameters:@[]];
-    LNActionExecutorOptions* options = [[optionsClass alloc] init];
+    LNAction *action = [[actionClass alloc] initWithIdentifier:identifier
+                                               mangledTypeName:mangledTypeName
+                                                openAppWhenRun:NO
+                                                    parameters:@[]];
+    LNActionExecutorOptions *options = [[optionsClass alloc] init];
     options.clientLabel = @"PrivateProgressDemo";
     options.kind = 2; // LNActionExecutorOptions kind: App Shortcut
     options.donateToTranscript = NO;
 
-    LNAppContext* context = [[contextClass alloc] init];
+    LNAppContext *context = [[contextClass alloc] init];
     NSProgress *reportingProgress = [NSProgress progressWithTotalUnitCount:1];
     [context performAction:action
                    options:options

@@ -87,7 +87,8 @@ final class ShareExtensionViewModel: ObservableObject {
                 rank[normalizedID] = rank.count
             }
         }
-        return candidates
+        return
+            candidates
             .filter { rank[$0.bundleIdentifier.lowercased()] != nil }
             .sorted { (rank[$0.bundleIdentifier.lowercased()] ?? Int.max) < (rank[$1.bundleIdentifier.lowercased()] ?? Int.max) }
     }
@@ -95,8 +96,9 @@ final class ShareExtensionViewModel: ObservableObject {
     func suggestedApps() -> [ShareApp] {
         var apps = recommendedApps()
         if shouldShowInstallAction(),
-           let sideStoreApp = visibleApps.first(where: { $0.isBuiltInSideStore }),
-           !apps.contains(where: { $0.id == sideStoreApp.id }) {
+            let sideStoreApp = visibleApps.first(where: { $0.isBuiltInSideStore }),
+            !apps.contains(where: { $0.id == sideStoreApp.id })
+        {
             apps.append(sideStoreApp)
         }
         return apps
@@ -150,7 +152,7 @@ final class ShareExtensionViewModel: ObservableObject {
             }
         }
     }
-    
+
     func reloadApps() {
         var apps: [ShareApp] = []
         if let privateDocURL {
@@ -217,7 +219,8 @@ final class ShareExtensionViewModel: ObservableObject {
 
     private func sortByCustomOrder(_ apps: [ShareApp]) -> [ShareApp] {
         guard let customSortOrder = sharedDefaults?.array(forKey: "LCCustomSortOrder") as? [String],
-              !customSortOrder.isEmpty else {
+            !customSortOrder.isEmpty
+        else {
             return apps.sorted { $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending }
         }
 
@@ -260,7 +263,8 @@ final class ShareExtensionViewModel: ObservableObject {
         }
         let appInfo = (NSDictionary(contentsOf: appURL.appendingPathComponent("LCAppInfo.plist")) as? [String: Any]) ?? [:]
         let relativeBundlePath = appURL.lastPathComponent
-        let displayName = (infoPlist["CFBundleDisplayName"] as? String)
+        let displayName =
+            (infoPlist["CFBundleDisplayName"] as? String)
             ?? (infoPlist["CFBundleName"] as? String)
             ?? (infoPlist["CFBundleExecutable"] as? String)
             ?? relativeBundlePath
@@ -331,7 +335,8 @@ final class ShareExtensionViewModel: ObservableObject {
         guard let privateDocURL else {
             return nil
         }
-        let iconCacheURL = privateDocURL
+        let iconCacheURL =
+            privateDocURL
             .appendingPathComponent("SideStore/Library/Caches", isDirectory: true)
             .appendingPathComponent("BuiltInSideStoreIconCache", isDirectory: true)
         return preferredIconURL(in: iconCacheURL)
@@ -395,7 +400,7 @@ final class ShareExtensionViewModel: ObservableObject {
             )
         ]
     }
-    
+
     func launch(app: ShareApp, context: NSExtensionContext?) async {
         guard let container = app.primaryContainer else {
             errorMessage = "lc.shareExtension.error.noContainer".loc
@@ -562,7 +567,7 @@ final class ShareExtensionViewModel: ObservableObject {
         components.host = "livecontainer-launch"
         var queryItems = [
             URLQueryItem(name: "bundle-name", value: item.app.relativeBundlePath),
-            URLQueryItem(name: "container-folder-name", value: item.container.folderName)
+            URLQueryItem(name: "container-folder-name", value: item.container.folderName),
         ]
         if let launchURLString {
             queryItems.append(URLQueryItem(name: "open-url", value: Data(launchURLString.utf8).base64EncodedString()))
@@ -586,7 +591,7 @@ final class ShareExtensionViewModel: ObservableObject {
         }
         return nil
     }
-    
+
     static func resolvePrivateDocURL(sharedDefaults: UserDefaults?) -> URL? {
         guard let bookmarkData = sharedDefaults?.data(forKey: "LCLaunchExtensionPrivateDocBookmark") else {
             return nil

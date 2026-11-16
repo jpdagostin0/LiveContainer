@@ -7,14 +7,14 @@
 import SwiftUI
 
 @main
-struct LiveContainerSwiftUIApp : SwiftUI.App {
+struct LiveContainerSwiftUIApp: SwiftUI.App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
+
     init() {
         let fm = FileManager()
-        var tempAppDataFolderNames : [String] = []
-        var tempTweakFolderNames : [String] = []
-        
+        var tempAppDataFolderNames: [String] = []
+        var tempTweakFolderNames: [String] = []
+
         var tempApps: [LCAppModel] = []
         var tempArm32EmuApps: [LCAppModel] = []
         var tempHiddenApps: [LCAppModel] = []
@@ -74,7 +74,7 @@ struct LiveContainerSwiftUIApp : SwiftUI.App {
                 }
                 tempAppDataFolderNames.append(dataDir)
             }
-            
+
             // load tweak folders
             try fm.createDirectory(at: LCPath.tweakPath, withIntermediateDirectories: true)
             let tweakDirs = try fm.contentsOfDirectory(atPath: LCPath.tweakPath.path)
@@ -89,7 +89,7 @@ struct LiveContainerSwiftUIApp : SwiftUI.App {
         } catch {
             NSLog("[LC] error:\(error)")
         }
-        
+
         DataManager.shared.model.apps = tempApps
         DataManager.shared.model.arm32EmuApps = tempArm32EmuApps
         DataManager.shared.model.hiddenApps = tempHiddenApps
@@ -99,7 +99,7 @@ struct LiveContainerSwiftUIApp : SwiftUI.App {
             UserDefaults.lcShared().set(Array(tempURLSchemes), forKey: "LCGuestURLSchemes")
         }
     }
-    
+
     var body: some Scene {
         WindowGroup(id: "Main") {
             LCTabView()
@@ -107,7 +107,7 @@ struct LiveContainerSwiftUIApp : SwiftUI.App {
                 .environmentObject(DataManager.shared.model)
                 .environmentObject(LCAppSortManager.shared)
         }
-        
+
         if UIApplication.shared.supportsMultipleScenes, #available(iOS 16.1, *) {
             WindowGroup(id: "appView", for: String.self) { $id in
                 if let id {
@@ -117,5 +117,5 @@ struct LiveContainerSwiftUIApp : SwiftUI.App {
 
         }
     }
-    
+
 }

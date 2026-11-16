@@ -2,13 +2,13 @@
 #import <UIKit/UIKit.h>
 #import "LCUtils.h"
 
-typedef NS_ENUM(NSInteger, LCOrientationLock){
+typedef NS_ENUM(NSInteger, LCOrientationLock) {
     Disabled = 0,
     Landscape = 1,
     Portrait = 2
 };
 
-typedef NS_ENUM(NSInteger, MultitaskSpecified){
+typedef NS_ENUM(NSInteger, MultitaskSpecified) {
     MultitaskSpecifiedDefault = 0,
     MultitaskSpecifiedNo = 1,
     MultitaskSpecifiedYes = 2
@@ -25,7 +25,7 @@ typedef NS_ENUM(NSInteger, MultitaskSpecified){
 @property bool isJITNeeded;
 @property bool helperProcessesSupport;
 @property bool classicMode;
-@property (nonatomic, readonly) NSUInteger defaultClassicMode;
+@property(nonatomic, readonly) NSUInteger defaultClassicMode;
 @property bool isLocked;
 @property bool isHidden;
 @property bool doSymlinkInbox;
@@ -45,8 +45,8 @@ typedef NS_ENUM(NSInteger, MultitaskSpecified){
 @property bool autoSaveDisabled;
 @property bool dontSign;
 @property bool spoofSDKVersion;
-@property (nonatomic, strong) NSString* jitLaunchScriptJs;
-@property (nonatomic, strong) NSString* selected32BitEmulator;
+@property(nonatomic, strong) NSString* jitLaunchScriptJs;
+@property(nonatomic, strong) NSString* selected32BitEmulator;
 @property NSDate* lastLaunched;
 @property NSDate* installationDate;
 @property NSString* remark;
@@ -65,10 +65,10 @@ typedef NS_ENUM(NSInteger, MultitaskSpecified){
 - (NSString*)bundlePath;
 - (NSString*)bundleIdentifier;
 - (NSString*)version;
-- (NSMutableArray<NSString *>*)urlSchemes;
+- (NSMutableArray<NSString*>*)urlSchemes;
 - (instancetype)initWithBundlePath:(NSString*)bundlePath;
-- (UIImage *)generateLiveContainerWrappedIconWithStyle:(GeneratedIconStyle)style;
-- (NSDictionary *)generateWebClipConfigWithContainerId:(NSString*)containerId iconStyle:(GeneratedIconStyle)style;
+- (UIImage*)generateLiveContainerWrappedIconWithStyle:(GeneratedIconStyle)style;
+- (NSDictionary*)generateWebClipConfigWithContainerId:(NSString*)containerId iconStyle:(GeneratedIconStyle)style;
 - (void)save;
-- (void)patchExecAndSignIfNeedWithCompletionHandler:(void(^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void(^)(NSProgress* progress))progressHandler  forceSign:(BOOL)forceSign;
+- (void)patchExecAndSignIfNeedWithCompletionHandler:(void (^)(bool success, NSString* errorInfo))completetionHandler progressHandler:(void (^)(NSProgress* progress))progressHandler forceSign:(BOOL)forceSign;
 @end

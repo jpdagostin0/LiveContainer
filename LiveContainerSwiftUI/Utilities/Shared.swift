@@ -5,11 +5,11 @@
 //  Created by s s on 2024/8/22.
 //
 
-import SwiftUI
-import UniformTypeIdentifiers
+import Combine
 import SafariServices
 import Security
-import Combine
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct LCPath {
     public static let docPath = {
@@ -20,14 +20,15 @@ struct LCPath {
     public static let dataPath = docPath.appendingPathComponent("Data/Application")
     public static let appGroupPath = docPath.appendingPathComponent("Data/AppGroup")
     public static let tweakPath = docPath.appendingPathComponent("Tweaks")
-    
+
     public static let lcGroupDocPath = {
         let fm = FileManager()
         // it seems that Apple don't want to create one for us, so we just borrow our Store's
         if let appGroupPathUrl = LCSharedUtils.appGroupPath() {
             return appGroupPathUrl.appendingPathComponent("LiveContainer")
         } else if let appGroupPathUrl =
-                    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.SideStore.SideStore") {
+            FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.com.SideStore.SideStore")
+        {
             return appGroupPathUrl.appendingPathComponent("LiveContainer")
         } else {
             return docPath
@@ -37,7 +38,7 @@ struct LCPath {
     public static let lcGroupDataPath = lcGroupDocPath.appendingPathComponent("Data/Application")
     public static let lcGroupAppGroupPath = lcGroupDocPath.appendingPathComponent("Data/AppGroup")
     public static let lcGroupTweakPath = lcGroupDocPath.appendingPathComponent("Tweaks")
-    
+
     public static func ensureAppGroupPaths() throws {
         let fm = FileManager()
         if !fm.fileExists(atPath: LCPath.lcGroupBundlePath.path) {
@@ -55,44 +56,44 @@ struct LCPath {
 class SharedModel: ObservableObject {
     @Published var selectedTab: LCTabIdentifier = .apps
     @Published var deepLink: URL?
-    
+
     @Published var isHiddenAppUnlocked = false
     @Published var developerMode = false
     // 0 = current liveContainer is the primary one,
     // 2 = current liveContainer is not the primary one
     @Published var multiLCStatus = 0
     @Published var isJITModalOpen = false
-    
+
     @Published var enableMultipleWindow = false
 
     @Published var appDataFolderNames: [String] = []
     @Published var tweakFolderNames: [String] = []
-    
-    @Published var apps : [LCAppModel] = []
-    @Published var arm32EmuApps : [LCAppModel] = []
-    @Published var hiddenApps : [LCAppModel] = []
-    
-    @Published var pidCallback : ((NSNumber, Error?) -> Void)? = nil
-    
+
+    @Published var apps: [LCAppModel] = []
+    @Published var arm32EmuApps: [LCAppModel] = []
+    @Published var hiddenApps: [LCAppModel] = []
+
+    @Published var pidCallback: ((NSNumber, Error?) -> Void)? = nil
+
     static let isPhone: Bool = {
         UIDevice.current.userInterfaceIdiom == .phone
     }()
-    
+
     static let isLiquidGlassEnabled = {
-        if #available(iOS 19.0, *), (dyld_get_program_sdk_version() >= 0x1a0000 || UserDefaults.standard.bool(forKey: "com.apple.SwiftUI.IgnoreSolariumLinkedOnCheck")) {
+        if #available(iOS 19.0, *), dyld_get_program_sdk_version() >= 0x1a0000 || UserDefaults.standard.bool(forKey: "com.apple.SwiftUI.IgnoreSolariumLinkedOnCheck") {
             if let compatibilityEnabled = Bundle.main.infoDictionary?["UIDesignRequiresCompatibility"] as? Bool, compatibilityEnabled {
                 return false
             }
-            
+
             return true
         }
         return false
     }()
-    
+
     var mainWindowOpened = false
-    
+
     public static let keychainAccessGroupCount = 128
-    
+
     func updateMultiLCStatus() {
         if LCUtils.appUrlScheme()?.lowercased() != "livecontainer" {
             multiLCStatus = 2
@@ -100,7 +101,7 @@ class SharedModel: ObservableObject {
             multiLCStatus = 0
         }
     }
-    
+
     init() {
         updateMultiLCStatus()
     }
@@ -111,21 +112,23 @@ class DataManager {
     let model = SharedModel()
 }
 
-class AlertHelper<T> : ObservableObject {
+class AlertHelper<T>: ObservableObject {
     @Published var show = false
-    private var result : T?
-    private var c : UnsafeContinuation<Void, Never>? = nil
-    
+    private var result: T?
+    private var c: UnsafeContinuation<Void, Never>? = nil
+
     func open() async -> T? {
         await withUnsafeContinuation { c in
             self.c = c
-            Task { await MainActor.run {
-                self.show = true
-            }}
+            Task {
+                await MainActor.run {
+                    self.show = true
+                }
+            }
         }
         return self.result
     }
-    
+
     func close(result: T?) {
         if let c {
             self.result = result
@@ -141,14 +144,14 @@ class AlertHelper<T> : ObservableObject {
 
 typealias YesNoHelper = AlertHelper<Bool>
 
-class InputHelper : AlertHelper<String> {
+class InputHelper: AlertHelper<String> {
     @Published var initVal = ""
-    
+
     func open(initVal: String) async -> String? {
         self.initVal = initVal
         return await super.open()
     }
-    
+
     override func open() async -> String? {
         self.initVal = ""
         return await super.open()
@@ -158,32 +161,32 @@ class InputHelper : AlertHelper<String> {
 extension String: @retroactive Error {}
 extension String: @retroactive LocalizedError {
     public var errorDescription: String? { return self }
-        
-    private static var enBundle : Bundle? = {
+
+    private static var enBundle: Bundle? = {
         let language = "en"
-        let path = Bundle.main.path(forResource:language, ofType: "lproj")
+        let path = Bundle.main.path(forResource: language, ofType: "lproj")
         let bundle = Bundle(path: path!)
         return bundle
     }()
-    
+
     var loc: String {
         let message = NSLocalizedString(self, comment: "")
         if message != self {
             return message
         }
 
-        if let forcedString = String.enBundle?.localizedString(forKey: self, value: nil, table: nil){
+        if let forcedString = String.enBundle?.localizedString(forKey: self, value: nil, table: nil) {
             return forcedString
-        }else {
+        } else {
             return self
         }
     }
-    
-    func localizeWithFormat(_ arguments: CVarArg...) -> String{
+
+    func localizeWithFormat(_ arguments: CVarArg...) -> String {
         String.localizedStringWithFormat(self.loc, arguments)
     }
-    
-    func sanitizeNonACSII() -> String  {
+
+    func sanitizeNonACSII() -> String {
         filter { $0.isASCII }
     }
 }
@@ -201,18 +204,21 @@ extension Color {
     func readableTextColor() -> Color {
         let color = Color(.systemBackground)
         let percentage = 0.5
-        
+
         // https://stackoverflow.com/a/78649412
         let components1 = UIColor(self).cgColor.components!
-        var bgR: CGFloat = 0, bgG: CGFloat = 0, bgB: CGFloat = 0, bgA: CGFloat = 0
+        var bgR: CGFloat = 0
+        var bgG: CGFloat = 0
+        var bgB: CGFloat = 0
+        var bgA: CGFloat = 0
         UIColor(color).getRed(&bgR, green: &bgG, blue: &bgB, alpha: &bgA)
         var red = (1.0 - percentage) * components1[0] + percentage * bgR
         var green = (1.0 - percentage) * components1[1] + percentage * bgG
         var blue = (1.0 - percentage) * components1[2] + percentage * bgB
         //var alpha = (1.0 - percentage) * components1[3] + percentage * bgA
         //UIColor(mix(with: Color(.systemBackground), by: 0.5)).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-        
-        let brightness = (0.2126*red + 0.7152*green + 0.0722*blue);
+
+        let brightness = (0.2126 * red + 0.7152 * green + 0.0722 * blue)
         let brightnessOffset = brightness < 0.5 ? 0.4 : -0.4
         red = min(Double(red) + brightnessOffset, 1.0)
         green = min(Double(green) + brightnessOffset, 1.0)
@@ -223,16 +229,16 @@ extension Color {
 
 struct ImageDocument: FileDocument {
     var data: Data
-    
+
     static var readableContentTypes: [UTType] {
-        [UTType.image] // Specify that the document supports image files
+        [UTType.image]  // Specify that the document supports image files
     }
-    
+
     // Initialize with data
     init(uiImage: UIImage) {
         self.data = uiImage.pngData()!
     }
-    
+
     // Function to read the data from the file
     init(configuration: ReadConfiguration) throws {
         guard let data = configuration.file.regularFileContents else {
@@ -240,7 +246,7 @@ struct ImageDocument: FileDocument {
         }
         self.data = data
     }
-    
+
     // Write data to the file
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         return FileWrapper(regularFileWithContents: data)
@@ -248,12 +254,12 @@ struct ImageDocument: FileDocument {
 }
 
 
-struct SiteAssociationDetailItem : Codable {
+struct SiteAssociationDetailItem: Codable {
     var appID: String?
     var appIDs: [String]?
-    
+
     func getBundleIds() -> [String] {
-        var ans : [String] = []
+        var ans: [String] = []
         // get rid of developer id
         if let appID = appID, appID.count > 11 {
             let index = appID.index(appID.startIndex, offsetBy: 11)
@@ -273,35 +279,34 @@ struct SiteAssociationDetailItem : Codable {
     }
 }
 
-struct AppLinks : Codable {
-    var details : [SiteAssociationDetailItem]?
+struct AppLinks: Codable {
+    var details: [SiteAssociationDetailItem]?
 }
 
-struct SiteAssociation : Codable {
+struct SiteAssociation: Codable {
     var applinks: AppLinks?
 }
 
 
-struct JITStreamerEBLaunchAppResponse : Codable {
+struct JITStreamerEBLaunchAppResponse: Codable {
     let ok: Bool
     let launching: Bool
     let position: Int?
     let error: String?
 }
 
-struct JITStreamerEBStatusResponse : Codable {
+struct JITStreamerEBStatusResponse: Codable {
     let ok: Bool
     let done: Bool
     let position: Int?
     let error: String?
 }
 
-struct JITStreamerEBMountResponse : Codable {
+struct JITStreamerEBMountResponse: Codable {
     let ok: Bool
     let mounting: Bool
     let error: String?
 }
-
 
 
 extension NSNotification {

@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 struct LCAppStorageItem: Identifiable {
     let id: UUID
@@ -70,7 +70,7 @@ final class LCStorageManagementModel: ObservableObject {
         } else {
             allApps = apps
         }
-        
+
         if UserDefaults.sideStoreExist() {
             allApps.append(LCAppModel(appInfo: BuiltInSideStoreAppInfo.shared))
         }
@@ -81,17 +81,17 @@ final class LCStorageManagementModel: ObservableObject {
         )
 
         var sizesByCategory: [StorageCategory: Int64] = [:]
-        
+
         let knownRoots = uniquePaths([LCPath.docPath, LCPath.lcGroupDocPath])
         let bundleRoots = uniquePaths([LCPath.bundlePath, LCPath.lcGroupBundlePath])
         let containerRoots = uniquePaths([LCPath.dataPath, LCPath.lcGroupDataPath])
         let appGroupRoots = uniquePaths([LCPath.appGroupPath, LCPath.lcGroupAppGroupPath])
         let tweakRoots = uniquePaths([LCPath.tweakPath, LCPath.lcGroupTweakPath])
-        
-        
+
+
         sizesByCategory[.appBundle] = 0
         sizesByCategory[.containers] = 0
-        
+
         var sideStoreContainerSize: Int64 = 0
         for appItem in appItems {
             if !(appItem.appModel.appInfo is BuiltInSideStoreAppInfo) {
@@ -99,7 +99,7 @@ final class LCStorageManagementModel: ObservableObject {
             } else {
                 sideStoreContainerSize = appItem.containersSize
             }
-            
+
             for containerDetail in appItem.containerDetails {
                 if containerDetail.isExternalContainer {
                     continue
@@ -165,13 +165,13 @@ final class LCStorageManagementModel: ObservableObject {
             if container.bookmarkResolved {
                 let _ = container.containerURL.startAccessingSecurityScopedResource()
             }
-            
+
             let size = try await calculateSize(at: container.containerURL)
-            
+
             if container.bookmarkResolved {
                 container.containerURL.stopAccessingSecurityScopedResource()
             }
-            
+
             if container.storageBookMark == nil {
                 containersSize += size
             }
@@ -192,7 +192,7 @@ final class LCStorageManagementModel: ObservableObject {
         } else {
             bundleSize = nil
         }
-        
+
         let totalSize: Int64
         if input.appInfo is BuiltInSideStoreAppInfo {
             totalSize = containersSize
@@ -275,14 +275,16 @@ final class LCStorageManagementModel: ObservableObject {
             .isRegularFileKey,
             .totalFileAllocatedSizeKey,
             .fileAllocatedSizeKey,
-            .fileSizeKey
+            .fileSizeKey,
         ]
-        guard let enumerator = fileManager.enumerator(
-            at: url,
-            includingPropertiesForKeys: Array(resourceKeys),
-            options: [],
-            errorHandler: nil
-        ) else {
+        guard
+            let enumerator = fileManager.enumerator(
+                at: url,
+                includingPropertiesForKeys: Array(resourceKeys),
+                options: [],
+                errorHandler: nil
+            )
+        else {
             return 0
         }
 
@@ -295,7 +297,8 @@ final class LCStorageManagementModel: ObservableObject {
                 continue
             }
 
-            let fileSize = resourceValues.totalFileAllocatedSize
+            let fileSize =
+                resourceValues.totalFileAllocatedSize
                 ?? resourceValues.fileAllocatedSize
                 ?? resourceValues.fileSize
                 ?? 0

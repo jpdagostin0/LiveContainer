@@ -23,23 +23,23 @@ private struct LaunchPriorityLC: Identifiable, Hashable {
 private let knownLiveContainers = [
     LaunchPriorityLC(scheme: "livecontainer", displayName: "LiveContainer"),
     LaunchPriorityLC(scheme: "livecontainer2", displayName: "LiveContainer2"),
-    LaunchPriorityLC(scheme: "livecontainer3", displayName: "LiveContainer3")
+    LaunchPriorityLC(scheme: "livecontainer3", displayName: "LiveContainer3"),
 ]
 
-struct InstallAnotherLCButton : View {
-    @State var lcName : String
+struct InstallAnotherLCButton: View {
+    @State var lcName: String
     @State var detected = false
-    let delegate : InstallAnotherLCButtonDelegate
-    
+    let delegate: InstallAnotherLCButtonDelegate
+
     init(lcName: String, delegate: InstallAnotherLCButtonDelegate) {
         self._lcName = State(initialValue: lcName)
         self._detected = State(initialValue: UIApplication.shared.canOpenURL(URL(string: "\(lcName.lowercased())://")!))
         self.delegate = delegate
     }
-    
+
     var body: some View {
         Button {
-            Task { await delegate.installAnotherLC(name: lcName)}
+            Task { await delegate.installAnotherLC(name: lcName) }
         } label: {
             HStack {
                 Text(lcName)
@@ -58,22 +58,22 @@ struct InstallAnotherLCButton : View {
             updateInstallStatus()
         }
     }
-    
+
     func updateInstallStatus() {
         detected = UIApplication.shared.canOpenURL(URL(string: "\(lcName.lowercased())://")!)
     }
 }
 
-struct LCMultiLCManagementView : View, InstallAnotherLCButtonDelegate {
+struct LCMultiLCManagementView: View, InstallAnotherLCButtonDelegate {
     @AppStorage("LCMultiAllowGameCategory") var useGameCategory = false
     @AppStorage("LCMultiAllowGameMode") var allowGameMode = false
     @State var errorShow = false
     @State var errorInfo = ""
     @State var successShow = false
     @State var successInfo = ""
-    
+
     @State private var showShareSheet = false
-    @State private var shareURL : URL? = nil
+    @State private var shareURL: URL? = nil
     @StateObject private var installLC2Alert = AlertHelper<Int>()
     @State private var launchPriorityItems: [LaunchPriorityLC] = []
 
@@ -117,20 +117,20 @@ struct LCMultiLCManagementView : View, InstallAnotherLCButtonDelegate {
             reloadLaunchPriorityItems()
         }
         .alert("lc.settings.multiLCInstall".loc, isPresented: $installLC2Alert.show) {
-            if(UserDefaults.sideStoreExist()) {
+            if UserDefaults.sideStoreExist() {
                 Button {
                     installLC2Alert.close(result: 2)
                 } label: {
                     Text("lc.settings.multiLCInstall.installWithBuiltInSideStore".loc)
                 }
             }
-            
+
             Button {
                 installLC2Alert.close(result: 1)
             } label: {
                 Text("lc.common.continue".loc)
             }
-            
+
             Button("lc.common.cancel".loc, role: .cancel) {
                 installLC2Alert.close(result: 0)
             }
@@ -145,7 +145,7 @@ struct LCMultiLCManagementView : View, InstallAnotherLCButtonDelegate {
         .navigationTitle("lc.settings.multiLC".loc)
         .navigationBarTitleDisplayMode(.inline)
     }
-    
+
     private func isInstalled(scheme: String) -> Bool {
         if scheme == "livecontainer" {
             return true
@@ -189,15 +189,15 @@ struct LCMultiLCManagementView : View, InstallAnotherLCButtonDelegate {
         if !LCUtils.isAppGroupAltStoreLike() {
             errorInfo = "lc.settings.unsupportedInstallMethod".loc
             errorShow = true
-            return;
+            return
         }
-        
+
         guard let result = await installLC2Alert.open(), result != 0 else {
             return
         }
-        
+
         do {
-            var extraInfo: [String : Any] = [:]
+            var extraInfo: [String: Any] = [:]
             if useGameCategory {
                 extraInfo["LSApplicationCategoryType"] = "public.app-category.games"
             }
@@ -206,10 +206,10 @@ struct LCMultiLCManagementView : View, InstallAnotherLCButtonDelegate {
                 extraInfo["LSSupportsGameMode"] = true
             }
             let packedIpaUrl = try LCUtils.archiveIPA(withBundleName: name, includingExtraInfoDict: extraInfo)
-            
+
             shareURL = packedIpaUrl
-            
-            if(result == 2) {
+
+            if result == 2 {
                 let launchURLStr = packedIpaUrl.absoluteString
                 let bookmark = try packedIpaUrl.bookmarkData(
                     options: URL.BookmarkCreationOptions(rawValue: 1 << 11),
@@ -220,9 +220,9 @@ struct LCMultiLCManagementView : View, InstallAnotherLCButtonDelegate {
                 LCUtils.openSideStore(urlStr: launchURLStr)
                 return
             }
-            
+
             showShareSheet = true
-            
+
         } catch {
             errorInfo = error.localizedDescription
             errorShow = true

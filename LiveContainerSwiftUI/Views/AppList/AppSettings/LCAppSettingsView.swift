@@ -21,11 +21,11 @@ struct LCAppSettingsView: View {
             onDocumentPicked?(url)
         }
     }
-    
-    private var appInfo : LCAppInfo
-    
-    @ObservedObject private var model : LCAppModel
-    
+
+    private var appInfo: LCAppInfo
+
+    @ObservedObject private var model: LCAppModel
+
 
     @StateObject private var renameFolderInput = InputHelper()
     @StateObject private var moveToAppGroupAlert = YesNoHelper()
@@ -33,18 +33,18 @@ struct LCAppSettingsView: View {
     @StateObject private var signUnsignedAlert = YesNoHelper()
     @StateObject private var addExternalNonLocalContainerWarningAlert = YesNoHelper()
     @State var choosingStorage = false
-    
+
     @State private var errorShow = false
     @State private var errorInfo = ""
     @State private var selectUnusedContainerSheetShow = false
-    
-    @EnvironmentObject private var sharedModel : SharedModel
-    
+
+    @EnvironmentObject private var sharedModel: SharedModel
+
     init(model: LCAppModel) {
         self.appInfo = model.appInfo
         self._model = ObservedObject(wrappedValue: model)
     }
-    
+
     var body: some View {
         Form {
             Section {
@@ -65,9 +65,9 @@ struct LCAppSettingsView: View {
                 }
                 if !model.uiIsShared {
                     Menu {
-                        Picker(selection: $model.uiTweakFolder , label: Text("")) {
-                            Label("lc.common.none".loc, systemImage: "nosign").tag(Optional<String>(nil))
-                            ForEach(sharedModel.tweakFolderNames, id:\.self) { folderName in
+                        Picker(selection: $model.uiTweakFolder, label: Text("")) {
+                            Label("lc.common.none".loc, systemImage: "nosign").tag(String?(nil))
+                            ForEach(sharedModel.tweakFolderNames, id: \.self) { folderName in
                                 Text(folderName).tag(Optional(folderName))
                             }
                         }
@@ -80,8 +80,8 @@ struct LCAppSettingsView: View {
                                 .multilineTextAlignment(.trailing)
                         }
                     }
-                    
-                    
+
+
                 } else {
                     HStack {
                         Text("lc.appSettings.tweakFolder".loc)
@@ -92,11 +92,11 @@ struct LCAppSettingsView: View {
                             .multilineTextAlignment(.trailing)
                     }
                 }
-                
+
                 if !model.uiIsShared {
                     if LCUtils.isAppGroupAltStoreLike() || LCUtils.store() == .ADP {
                         Button("lc.appSettings.toSharedApp".loc) {
-                            Task { await moveToAppGroup()}
+                            Task { await moveToAppGroup() }
                         }
                     }
                 } else if sharedModel.multiLCStatus != 2 {
@@ -107,10 +107,10 @@ struct LCAppSettingsView: View {
             } header: {
                 Text("lc.common.data".loc)
             }
-            
+
             Section {
-                List{
-                    ForEach(model.uiContainers.indices, id:\.self) { i in
+                List {
+                    ForEach(model.uiContainers.indices, id: \.self) { i in
                         NavigationLink {
                             LCContainerView(container: model.uiContainers[i], uiDefaultDataFolder: $model.uiDefaultDataFolder, delegate: self)
                         } label: {
@@ -118,9 +118,9 @@ struct LCAppSettingsView: View {
                         }
                     }
                 }
-                if(model.uiContainers.count < SharedModel.keychainAccessGroupCount) {
+                if model.uiContainers.count < SharedModel.keychainAccessGroupCount {
                     Button {
-                        Task{ await createFolder() }
+                        Task { await createFolder() }
                     } label: {
                         Text("lc.appSettings.newDataFolder".loc)
                     }
@@ -129,7 +129,7 @@ struct LCAppSettingsView: View {
                     } label: {
                         Text("lc.appSettings.selectExternalStorage".loc)
                     }
-                    if(!model.uiIsShared) {
+                    if !model.uiIsShared {
                         Button {
                             selectUnusedContainerSheetShow = true
                         } label: {
@@ -137,12 +137,12 @@ struct LCAppSettingsView: View {
                         }
                     }
                 }
-                
+
             } header: {
                 Text("lc.common.container".loc)
             }
-            
-            
+
+
             Section {
                 Toggle(isOn: $model.uiHelperProcessesSupport) {
                     Text("lc.appSettings.helperProcessesSupport".loc)
@@ -191,7 +191,8 @@ struct LCAppSettingsView: View {
                             picker.delegate = documentPickerCoordinator
 
                             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                               let rootViewController = windowScene.windows.first?.rootViewController {
+                                let rootViewController = windowScene.windows.first?.rootViewController
+                            {
                                 rootViewController.present(picker, animated: true)
                             }
                         }) {
@@ -210,30 +211,35 @@ struct LCAppSettingsView: View {
                     }
                 }
             } footer: {
-                    if #available(iOS 26.0, *), model.uiIsJITNeeded {
-                        Text("lc.appSettings.launchWithJitDesc".loc + "\n" + "lc.appSettings.jit26.scriptDesc".loc)
+                if #available(iOS 26.0, *), model.uiIsJITNeeded {
+                    Text("lc.appSettings.launchWithJitDesc".loc + "\n" + "lc.appSettings.jit26.scriptDesc".loc)
 
-                    } else {
-                        Text("lc.appSettings.launchWithJitDesc".loc)
-                    }
+                } else {
+                    Text("lc.appSettings.launchWithJitDesc".loc)
+                }
             }
 
             Section {
                 Toggle(isOn: $model.uiIsLocked) {
                     Text("lc.appSettings.lockApp".loc)
                 }
-                .onChange(of: model.uiIsLocked, perform: { newValue in
-                    Task { await model.setLocked(newLockState: newValue) }
-                })
+                .onChange(
+                    of: model.uiIsLocked,
+                    perform: { newValue in
+                        Task { await model.setLocked(newLockState: newValue) }
+                    })
 
                 if model.uiIsLocked {
                     Toggle(isOn: $model.uiIsHidden) {
                         Text("lc.appSettings.hideApp".loc)
                     }
-                    .onChange(of: model.uiIsHidden, perform: { _ in
-                        Task { await toggleHidden() }
-                    })
-                    .transition(.opacity.combined(with: .slide)) 
+                    .onChange(
+                        of: model.uiIsHidden,
+                        perform: { _ in
+                            Task { await toggleHidden() }
+                        }
+                    )
+                    .transition(.opacity.combined(with: .slide))
                 }
             } footer: {
                 if model.uiIsLocked {
@@ -241,7 +247,7 @@ struct LCAppSettingsView: View {
                         .transition(.opacity.combined(with: .slide))
                 }
             }
-            
+
             if #available(iOS 16.0, *) {
                 Section {
                     Picker(selection: $model.uiIsMultitaskModeSpecificed) {
@@ -253,15 +259,15 @@ struct LCAppSettingsView: View {
                     }
                 }
             }
-            
+
             Section {
                 NavigationLink {
                     if let supportedLanguage = model.supportedLanguages {
                         Form {
                             Picker(selection: $model.uiSelectedLanguage) {
                                 Text("lc.common.auto".loc).tag("")
-                                
-                                ForEach(supportedLanguage, id:\.self) { language in
+
+                                ForEach(supportedLanguage, id: \.self) { language in
                                     if language != "Base" {
                                         VStack(alignment: .leading) {
                                             Text(Locale(identifier: language).localizedString(forIdentifier: language) ?? language)
@@ -281,8 +287,8 @@ struct LCAppSettingsView: View {
 
                     } else {
                         Text("lc.common.loading".loc)
-                            .onAppear() {
-                                Task{ loadSupportedLanguages() }
+                            .onAppear {
+                                Task { loadSupportedLanguages() }
                             }
                     }
                 } label: {
@@ -297,10 +303,10 @@ struct LCAppSettingsView: View {
                                 .foregroundStyle(.gray)
                         }
                     }
-                    
+
                 }
             }
-            
+
             Section {
                 Toggle(isOn: $model.uiFixFilePickerNew) {
                     Text("lc.appSettings.fixFilePickerNew".loc)
@@ -321,7 +327,7 @@ struct LCAppSettingsView: View {
             } footer: {
                 Text("lc.appSettings.useLCBundleIdDesc".loc)
             }
-            
+
             if SharedModel.isPhone {
                 Section {
                     Picker(selection: $model.uiOrientationLock) {
@@ -333,7 +339,7 @@ struct LCAppSettingsView: View {
                     }
                 }
             }
-            
+
             Section {
                 Toggle(isOn: $model.uiHideLiveContainer) {
                     Text("lc.appSettings.hideLiveContainer".loc)
@@ -342,17 +348,17 @@ struct LCAppSettingsView: View {
                 Toggle(isOn: $model.uiDontInjectTweakLoader) {
                     Text("lc.appSettings.dontInjectTweakLoader".loc)
                 }.disabled(model.uiTweakLoaderInjectFailed)
-                
+
                 if model.uiDontInjectTweakLoader {
                     Toggle(isOn: $model.uiDontLoadTweakLoader) {
                         Text("lc.appSettings.dontLoadTweakLoader".loc)
                     }
                 }
-                
+
             } footer: {
                 Text("lc.appSettings.hideLiveContainerDesc".loc)
             }
-            
+
             if #available(iOS 16.0, *) {
                 Section {
                     Toggle(isOn: $model.uiClassicMode) {
@@ -362,7 +368,7 @@ struct LCAppSettingsView: View {
                     Text("lc.appSettings.classicModeDesc".loc)
                 }
             }
-            
+
             Section {
                 Toggle(isOn: $model.uiSpoofSDKVersion) {
                     Text("lc.appSettings.spoofSDKVersion".loc)
@@ -371,7 +377,7 @@ struct LCAppSettingsView: View {
                 Text("lc.appSettings.fspoofSDKVersionDesc".loc)
             }
 
-            
+
             Section {
                 Toggle(isOn: $model.uiDoSymlinkInbox) {
                     Text("lc.appSettings.fixFilePicker".loc)
@@ -379,7 +385,7 @@ struct LCAppSettingsView: View {
             } footer: {
                 Text("lc.appSettings.fixFilePickerDesc".loc)
             }
-            
+
             Section {
                 Button("lc.appSettings.forceSign".loc) {
                     Task { await forceResign() }
@@ -388,7 +394,7 @@ struct LCAppSettingsView: View {
             } footer: {
                 Text("lc.appSettings.forceSignDesc".loc)
             }
-            
+
             Section {
                 HStack {
                     Text("lc.appList.sort.lastLaunched".loc)
@@ -410,12 +416,14 @@ struct LCAppSettingsView: View {
         .navigationTitle(appInfo.displayName())
         .navigationBarTitleDisplayMode(.inline)
         .alert("lc.common.error".loc, isPresented: $errorShow) {
-            Button("lc.common.ok".loc, action: {
-            })
+            Button(
+                "lc.common.ok".loc,
+                action: {
+                })
         } message: {
             Text(errorInfo)
         }
-        
+
         .textFieldAlert(
             isPresented: $renameFolderInput.show,
             title: "lc.common.enterNewFolderName".loc,
@@ -424,7 +432,7 @@ struct LCAppSettingsView: View {
             action: { newText in
                 renameFolderInput.close(result: newText!)
             },
-            actionCancel: {_ in
+            actionCancel: { _ in
                 renameFolderInput.close(result: "")
             }
         )
@@ -490,13 +498,13 @@ struct LCAppSettingsView: View {
             return
         }
         let fm = FileManager()
-        let dest : URL
+        let dest: URL
         if model.uiIsShared {
             dest = LCPath.lcGroupDataPath.appendingPathComponent(newName)
         } else {
             dest = LCPath.dataPath.appendingPathComponent(newName)
         }
-        
+
         do {
             try fm.createDirectory(at: dest, withIntermediateDirectories: false)
         } catch {
@@ -504,11 +512,11 @@ struct LCAppSettingsView: View {
             errorInfo = error.localizedDescription
             return
         }
-        
+
         sharedModel.appDataFolderNames.append(newName)
         let newContainer = LCContainer(folderName: newName, name: displayName, isShared: model.uiIsShared)
         // assign keychain group
-        var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
+        var keychainGroupSet: Set<Int> = Set(minimumCapacity: 3)
         for i in 0..<SharedModel.keychainAccessGroupCount {
             keychainGroupSet.insert(i)
         }
@@ -520,19 +528,19 @@ struct LCAppSettingsView: View {
             errorShow = true
             return
         }
-        
+
         model.uiContainers.append(newContainer)
         if model.uiSelectedContainer == nil {
-            model.uiSelectedContainer = newContainer;
+            model.uiSelectedContainer = newContainer
         }
         if model.uiDefaultDataFolder == nil {
             model.uiDefaultDataFolder = newName
             appInfo.dataUUID = newName
         }
-        appInfo.containers = model.uiContainers;
+        appInfo.containers = model.uiContainers
         newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
     }
-    
+
     func importDataStorage(result: Result<URL, any Error>) async {
         do {
             let url = try result.get()
@@ -554,26 +562,26 @@ struct LCAppSettingsView: View {
                     return
                 }
             }
-            
+
             guard let bookmark = LCUtils.bookmark(for: url) else {
                 errorInfo = "Unable to generate a bookmark for the selected URL!"
                 errorShow = true
                 return
             }
-            
+
             var container: LCContainer? = nil
             if fm.fileExists(atPath: url.appendingPathComponent("LCContainerInfo.plist").path) {
                 let plistInfo = try PropertyListSerialization.propertyList(from: Data(contentsOf: url.appendingPathComponent("LCContainerInfo.plist")), format: nil)
-                if let plistInfo = plistInfo as? [String : Any] {
+                if let plistInfo = plistInfo as? [String: Any] {
                     let name = plistInfo["folderName"] as? String ?? url.lastPathComponent
-                    container = LCContainer(infoDict: ["folderName": url.lastPathComponent, "name": name, "bookmarkData":bookmark], isShared: false)
+                    container = LCContainer(infoDict: ["folderName": url.lastPathComponent, "name": name, "bookmarkData": bookmark], isShared: false)
                 }
             }
             if container == nil {
                 // it's an empty folder, we assign a new keychain group to it.
                 container = LCContainer(infoDict: ["folderName": url.lastPathComponent, "name": url.lastPathComponent, "bookmarkData": bookmark], isShared: false)
                 // assign keychain group
-                var keychainGroupSet : Set<Int> = Set(minimumCapacity: 3)
+                var keychainGroupSet: Set<Int> = Set(minimumCapacity: 3)
                 for i in 0..<SharedModel.keychainAccessGroupCount {
                     keychainGroupSet.insert(i)
                 }
@@ -585,17 +593,17 @@ struct LCAppSettingsView: View {
                     errorShow = true
                     return
                 }
-                
-//                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    if container!.bookmarkResolved {
-                        container!.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
-                    }
-//                }
+
+                //                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                if container!.bookmarkResolved {
+                    container!.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
+                }
+                //                }
             }
             model.uiContainers.append(container!)
-            appInfo.containers = model.uiContainers;
+            appInfo.containers = model.uiContainers
             if model.uiSelectedContainer == nil {
-                model.uiSelectedContainer = container;
+                model.uiSelectedContainer = container
             }
             if model.uiDefaultDataFolder == nil {
                 model.uiDefaultDataFolder = url.lastPathComponent
@@ -616,38 +624,41 @@ struct LCAppSettingsView: View {
                 return
             }
         }
-        
+
         guard let result = await moveToAppGroupAlert.open(), result else {
             return
         }
-        
+
         do {
             try LCPath.ensureAppGroupPaths()
 
-            var moves: [(URL, URL)] = [];
-            moves.append((
-                URL(fileURLWithPath: appInfo.bundlePath()),
-                LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath)
-            ))
+            var moves: [(URL, URL)] = []
+            moves.append(
+                (
+                    URL(fileURLWithPath: appInfo.bundlePath()),
+                    LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath)
+                ))
             for container in model.uiContainers {
                 if container.storageBookMark != nil {
                     continue
                 }
-                
-                moves.append((
-                    LCPath.dataPath.appendingPathComponent(container.folderName),
-                    LCPath.lcGroupDataPath.appendingPathComponent(container.folderName)
-                ))
+
+                moves.append(
+                    (
+                        LCPath.dataPath.appendingPathComponent(container.folderName),
+                        LCPath.lcGroupDataPath.appendingPathComponent(container.folderName)
+                    ))
             }
             if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
-                moves.append((
-                    LCPath.tweakPath.appendingPathComponent(tweakFolder),
-                    LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder)
-                ))
+                moves.append(
+                    (
+                        LCPath.tweakPath.appendingPathComponent(tweakFolder),
+                        LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder)
+                    ))
             }
-            
+
             try LCUtils.moveFilesAtomicallyAfterPreflight(moves)
-            
+
             for container in model.uiContainers {
                 if container.storageBookMark != nil {
                     continue
@@ -657,13 +668,13 @@ struct LCAppSettingsView: View {
                 })
                 container.isShared = true
             }
-            
+
             if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
                 sharedModel.tweakFolderNames.removeAll(where: { s in
                     return s == tweakFolder
                 })
             }
-            
+
             appInfo.setBundlePath(LCPath.lcGroupBundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
             appInfo.isShared = true
             model.uiIsShared = true
@@ -671,12 +682,12 @@ struct LCAppSettingsView: View {
             errorInfo = error.localizedDescription
             errorShow = true
         }
-        
+
     }
-    
+
     func movePrivateDoc() async {
         for container in appInfo.containers {
-            if let runningLC = LCSharedUtils.getContainerUsingLCScheme(withFolderName: container.folderName) {                
+            if let runningLC = LCSharedUtils.getContainerUsingLCScheme(withFolderName: container.folderName) {
                 errorInfo = "lc.appSettings.appOpenInOtherLc %@ %@".localizeWithFormat(runningLC, runningLC)
                 errorShow = true
                 return
@@ -686,31 +697,34 @@ struct LCAppSettingsView: View {
         guard let result = await moveToPrivateDocAlert.open(), result else {
             return
         }
-        
+
         do {
-            var moves: [(URL, URL)] = [];
-            moves.append((
-                URL(fileURLWithPath: appInfo.bundlePath()),
-                LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath)
-            ))
+            var moves: [(URL, URL)] = []
+            moves.append(
+                (
+                    URL(fileURLWithPath: appInfo.bundlePath()),
+                    LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath)
+                ))
             for container in model.uiContainers {
                 if container.storageBookMark != nil {
                     continue
                 }
-                moves.append((
-                    LCPath.lcGroupDataPath.appendingPathComponent(container.folderName),
-                    LCPath.dataPath.appendingPathComponent(container.folderName)
-                ))
+                moves.append(
+                    (
+                        LCPath.lcGroupDataPath.appendingPathComponent(container.folderName),
+                        LCPath.dataPath.appendingPathComponent(container.folderName)
+                    ))
             }
             if let tweakFolder = appInfo.tweakFolder, tweakFolder.count > 0 {
-                moves.append((
-                    LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder),
-                    LCPath.tweakPath.appendingPathComponent(tweakFolder)
-                ))
+                moves.append(
+                    (
+                        LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder),
+                        LCPath.tweakPath.appendingPathComponent(tweakFolder)
+                    ))
             }
-            
+
             try LCUtils.moveFilesAtomicallyAfterPreflight(moves)
-            
+
             for container in model.uiContainers {
                 if container.storageBookMark != nil {
                     continue
@@ -721,7 +735,7 @@ struct LCAppSettingsView: View {
                 sharedModel.tweakFolderNames.append(tweakFolder)
                 model.uiTweakFolder = tweakFolder
             }
-            
+
             appInfo.setBundlePath(LCPath.bundlePath.appendingPathComponent(appInfo.relativeBundlePath).path)
             appInfo.isShared = false
             model.uiIsShared = false
@@ -732,9 +746,9 @@ struct LCAppSettingsView: View {
             errorInfo = error.localizedDescription
             errorShow = true
         }
-        
+
     }
-    
+
     func loadSupportedLanguages() {
         do {
             try model.loadSupportedLanguages()
@@ -744,11 +758,11 @@ struct LCAppSettingsView: View {
             return
         }
     }
-    
+
     func toggleHidden() async {
         await model.toggleHidden()
     }
-    
+
     func forceResign() async {
         if model.uiDontSign {
             guard let result = await signUnsignedAlert.open(), result else {
@@ -756,7 +770,7 @@ struct LCAppSettingsView: View {
             }
             model.uiDontSign = false
         }
-        
+
         do {
             try await model.forceResign()
         } catch {
@@ -764,34 +778,33 @@ struct LCAppSettingsView: View {
             errorShow = true
         }
     }
-    
+
     func formatDate(date: Date?) -> String {
         guard let date else {
             return "lc.common.unknown".loc
         }
-        
+
         let formatter1 = DateFormatter()
         formatter1.dateStyle = .short
         formatter1.timeStyle = .medium
         return formatter1.string(from: date)
-    
+
     }
 }
 
 
-
-extension LCAppSettingsView : LCContainerViewDelegate {
+extension LCAppSettingsView: LCContainerViewDelegate {
     func getBundleId() -> String {
         return model.appInfo.bundleIdentifier()!
     }
-    
+
     func unbindContainer(container: LCContainer) {
         model.uiContainers.removeAll { c in
             c === container
         }
-        
+
         // if the deleted container is the default one, we change to another one
-        if container.folderName == model.uiDefaultDataFolder && !model.uiContainers.isEmpty{
+        if container.folderName == model.uiDefaultDataFolder && !model.uiContainers.isEmpty {
             setDefaultContainer(container: model.uiContainers[0])
         }
         // if the deleted container is the selected one, we change to the default one
@@ -803,7 +816,7 @@ extension LCAppSettingsView : LCContainerViewDelegate {
                 }
             }
         }
-        
+
         if model.uiContainers.isEmpty {
             model.uiSelectedContainer = nil
             model.uiDefaultDataFolder = nil
@@ -811,26 +824,26 @@ extension LCAppSettingsView : LCContainerViewDelegate {
         }
         appInfo.containers = model.uiContainers
     }
-    
-    func setDefaultContainer(container newDefaultContainer: LCContainer ) {
+
+    func setDefaultContainer(container newDefaultContainer: LCContainer) {
         if model.uiSelectedContainer?.folderName == model.uiDefaultDataFolder {
             model.uiSelectedContainer = newDefaultContainer
         }
-        
+
         appInfo.dataUUID = newDefaultContainer.folderName
         model.uiDefaultDataFolder = newDefaultContainer.folderName
     }
-    
+
     func saveContainer(container: LCContainer) {
         container.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: container.keychainGroupId)
         appInfo.containers = model.uiContainers
         model.objectWillChange.send()
     }
-    
+
     func getSettingsBundle() -> Bundle? {
         return Bundle(url: URL(fileURLWithPath: appInfo.bundlePath()).appendingPathComponent("Settings.bundle"))
     }
-    
+
     func getContainerURL(container: LCContainer) -> URL {
         let preferencesFolderUrl = container.containerURL.appendingPathComponent("Library/Preferences")
         let fm = FileManager.default
@@ -846,23 +859,23 @@ extension LCAppSettingsView : LCContainerViewDelegate {
         }
         return container.containerURL
     }
-    
+
 }
 
-extension LCAppSettingsView : LCSelectContainerViewDelegate {
+extension LCAppSettingsView: LCSelectContainerViewDelegate {
     func addContainers(containers: Set<String>) {
         if containers.count + model.uiContainers.count > SharedModel.keychainAccessGroupCount {
             errorInfo = "lc.container.tooMuchContainers".loc
             errorShow = true
             return
         }
-        
+
         for folderName in containers {
             let newContainer = LCContainer(folderName: folderName, name: folderName, isShared: false)
             newContainer.loadName()
             if newContainer.keychainGroupId == -1 {
                 // assign keychain group for old containers
-                var keychainGroupSet : Set<Int> = Set(minimumCapacity: SharedModel.keychainAccessGroupCount)
+                var keychainGroupSet: Set<Int> = Set(minimumCapacity: SharedModel.keychainAccessGroupCount)
                 for i in 0..<SharedModel.keychainAccessGroupCount {
                     keychainGroupSet.insert(i)
                 }
@@ -877,10 +890,10 @@ extension LCAppSettingsView : LCSelectContainerViewDelegate {
                 newContainer.makeLCContainerInfoPlist(appIdentifier: appInfo.bundleIdentifier()!, keychainGroupId: freeKeyChainGroup)
             }
 
-            
+
             model.uiContainers.append(newContainer)
             if model.uiSelectedContainer == nil {
-                model.uiSelectedContainer = newContainer;
+                model.uiSelectedContainer = newContainer
             }
             if model.uiDefaultDataFolder == nil {
                 model.uiDefaultDataFolder = folderName
@@ -889,7 +902,7 @@ extension LCAppSettingsView : LCSelectContainerViewDelegate {
 
 
         }
-        appInfo.containers = model.uiContainers;
+        appInfo.containers = model.uiContainers
 
     }
 }

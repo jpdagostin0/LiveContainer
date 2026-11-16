@@ -32,9 +32,9 @@ static NSString *guestTaskIdentifier(NSString *identifier) {
 // NSProxy forwards every coder operation, including private XPC operations. Subclassing
 // NSCoder would instead inherit implementations that do not reach the real XPC coder.
 @interface LCBackgroundTaskCoder : NSProxy
-@property (nonatomic, strong) NSCoder *coder;
-@property (nonatomic, copy) NSString *sourceIdentifier;
-@property (nonatomic, copy) NSString *destinationIdentifier;
+@property(nonatomic, strong) NSCoder *coder;
+@property(nonatomic, copy) NSString *sourceIdentifier;
+@property(nonatomic, copy) NSString *destinationIdentifier;
 @end
 
 @implementation LCBackgroundTaskCoder
@@ -149,8 +149,7 @@ static BOOL hook_isPermissibleIdentifier(id self, SEL selector, NSString *identi
     return originalIsPermissibleIdentifier(self, selector, identifier);
 }
 
-__attribute__((constructor))
-static void BackgroundTasksGuestHooksInit(void) {
+__attribute__((constructor)) static void BackgroundTasksGuestHooksInit(void) {
     if (!NSUserDefaults.lcGuestAppId || ![NSUserDefaults.guestAppInfo[@"fixBackgroundTaskIdentifiers"] boolValue]) return;
     if (@available(iOS 26.0, *)) {
         NSString *guestBundleIdentifier = NSUserDefaults.lcGuestAppId;

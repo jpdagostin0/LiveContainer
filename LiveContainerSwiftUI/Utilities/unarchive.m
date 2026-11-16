@@ -4,30 +4,28 @@
 #include "archive_entry.h"
 
 static int
-copy_data(struct archive *ar, struct archive *aw, NSProgress *progress)
-{
-  int r;
-  const void *buff;
-  size_t size;
-  la_int64_t offset;
+copy_data(struct archive *ar, struct archive *aw, NSProgress *progress) {
+    int r;
+    const void *buff;
+    size_t size;
+    la_int64_t offset;
 
-  for (;;) {
-    r = archive_read_data_block(ar, &buff, &size, &offset);
-    if (r == ARCHIVE_EOF)
-      return (ARCHIVE_OK);
-    if (r < ARCHIVE_OK)
-      return (r);
-    r = archive_write_data_block(aw, buff, size, offset);
-    if (r < ARCHIVE_OK) {
-      fprintf(stderr, "%s\n", archive_error_string(aw));
-      return (r);
+    for (;;) {
+        r = archive_read_data_block(ar, &buff, &size, &offset);
+        if (r == ARCHIVE_EOF)
+            return (ARCHIVE_OK);
+        if (r < ARCHIVE_OK)
+            return (r);
+        r = archive_write_data_block(aw, buff, size, offset);
+        if (r < ARCHIVE_OK) {
+            fprintf(stderr, "%s\n", archive_error_string(aw));
+            return (r);
+        }
+        progress.completedUnitCount += size;
     }
-    progress.completedUnitCount += size;
-  }
 }
 
-int extract(NSString* fileToExtract, NSString* extractionPath, NSProgress* progress)
-{
+int extract(NSString *fileToExtract, NSString *extractionPath, NSProgress *progress) {
     struct archive *a;
     struct archive *ext;
     struct archive_entry *entry;
@@ -80,12 +78,12 @@ int extract(NSString* fileToExtract, NSString* extractionPath, NSProgress* progr
             fprintf(stderr, "%s\n", archive_error_string(a));
         if (r < ARCHIVE_WARN)
             break;
-        
-        NSString* currentFile = [NSString stringWithUTF8String:archive_entry_pathname(entry)];
-        NSString* fullOutputPath = [extractionPath stringByAppendingPathComponent:currentFile];
+
+        NSString *currentFile = [NSString stringWithUTF8String:archive_entry_pathname(entry)];
+        NSString *fullOutputPath = [extractionPath stringByAppendingPathComponent:currentFile];
         //printf("extracting %@ to %@\n", currentFile, fullOutputPath);
         archive_entry_set_pathname(entry, fullOutputPath.fileSystemRepresentation);
-        
+
         r = archive_write_header(ext, entry);
         if (r < ARCHIVE_OK)
             fprintf(stderr, "%s\n", archive_error_string(ext));
@@ -106,6 +104,6 @@ int extract(NSString* fileToExtract, NSString* extractionPath, NSProgress* progr
     archive_read_free(a);
     archive_write_close(ext);
     archive_write_free(ext);
-    
+
     return 0;
 }

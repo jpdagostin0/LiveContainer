@@ -10,7 +10,7 @@
 
 static void (*orig__willPerformHostCallback)(id self, SEL _cmd, id callback);
 
-static void hook__willPerformHostCallback(NSExtensionContext* self, SEL _cmd, id callback) {
+static void hook__willPerformHostCallback(NSExtensionContext *self, SEL _cmd, id callback) {
     NSExtensionItem *item = self.inputItems.firstObject;
     NSDictionary *launchOptions = item.userInfo;
     if ([launchOptions[@"url"] isKindOfClass:NSURL.class]) {
@@ -23,8 +23,7 @@ static void hook__willPerformHostCallback(NSExtensionContext* self, SEL _cmd, id
     orig__willPerformHostCallback(self, _cmd, callback);
 }
 
-__attribute__((constructor))
-static void ExtensionHookInit(void) {
+__attribute__((constructor)) static void ExtensionHookInit(void) {
     Class class = objc_lookUpClass("EXExtensionContextImplementation");
     Method method = class_getInstanceMethod(class, NSSelectorFromString(@"_willPerformHostCallback:"));
     orig__willPerformHostCallback = (void *)method_getImplementation(method);

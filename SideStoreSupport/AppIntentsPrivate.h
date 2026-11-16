@@ -9,9 +9,9 @@
 
 @interface LNAction
 - (instancetype)initWithIdentifier:(NSString *)identifier
-                    mangledTypeName:(NSString *)mangledTypeName
-                      openAppWhenRun:(BOOL)openAppWhenRun
-                         parameters:(NSArray *)parameters;
+                   mangledTypeName:(NSString *)mangledTypeName
+                    openAppWhenRun:(BOOL)openAppWhenRun
+                        parameters:(NSArray *)parameters;
 @end
 
 @interface LNActionExecutorOptions
@@ -24,9 +24,9 @@
 @interface LNAppContext
 - (instancetype)init;
 - (void)performAction:(id)action
-               options:(id)options
-     reportingProgress:(NSProgress *)progress
-              delegate:(nullable id)delegate
-            auditToken:(audit_token_t *)auditToken
-     completionHandler:(PrivateIntentCompletion)completion;
+              options:(id)options
+    reportingProgress:(NSProgress *)progress
+             delegate:(nullable id)delegate
+           auditToken:(audit_token_t *)auditToken
+    completionHandler:(PrivateIntentCompletion)completion;
 @end

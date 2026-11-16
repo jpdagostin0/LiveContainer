@@ -17,11 +17,13 @@ public final class LCCertificateProvisioner: NSObject, LCCertificateProvisioning
         super.init()
     }
 
-    @objc public func provisionCertificate(withEmail email: String,
-                                           password: String,
-                                           code: String?,
-                                           anisette: [String: String],
-                                           completion: @escaping (Data?, String?, String?) -> Void) {
+    @objc public func provisionCertificate(
+        withEmail email: String,
+        password: String,
+        code: String?,
+        anisette: [String: String],
+        completion: @escaping (Data?, String?, String?) -> Void
+    ) {
         Task {
             do {
                 let (certificate, certPassword) = try await RefreshHandler.shared.startProvision(

@@ -71,7 +71,7 @@ enum WorseQueryError: LocalizedError {
             return "worse_query is not available on this iOS version."
         case .noAppGroup:
             return "LiveContainer could not resolve an app group for worse_query."
-        case let .failure(code):
+        case .failure(let code):
             switch code {
             case -1:
                 return "The selected app group is unavailable."

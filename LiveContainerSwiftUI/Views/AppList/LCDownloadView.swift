@@ -7,60 +7,68 @@
 
 import SwiftUI
 
-public final class DownloadHelper : ObservableObject {
-    @Published var downloadProgress : Float = 0.0
-    @Published var downloadedSize : Int64 = 0
-    @Published var totalSize : Int64 = 0
+public final class DownloadHelper: ObservableObject {
+    @Published var downloadProgress: Float = 0.0
+    @Published var downloadedSize: Int64 = 0
+    @Published var totalSize: Int64 = 0
     @Published var isDownloading = false
     @Published var cancelled = false
     private var downloadTask: URLSessionDownloadTask?
     private var continuation: UnsafeContinuation<(), Never>?
-    
+
     func download(url: URL, to: URL) async throws {
         var ansError: Error? = nil
 
         await MainActor.run {
             cancelled = false
-            
+
             downloadProgress = 0.0
             downloadedSize = 0
             totalSize = 0
-            
+
             isDownloading = true
         }
-        
+
         await withUnsafeContinuation { c in
             continuation = c
-            
-            let bgConfig = URLSessionConfiguration.background(withIdentifier: "com.livecontainer.download.\(UUID().uuidString)")
-            let session = URLSession(configuration: bgConfig, delegate: DownloadDelegate(progressCallback: { progress, downloaded, total in
-                Task{ await MainActor.run {
-                    self.downloadProgress = progress
-                    self.downloadedSize = downloaded
-                    self.totalSize = total
-                }}
-            }, completeCallback: {tempFileURL, error in
-                Task{ await MainActor.run {
-                    self.isDownloading = false
-                }}
-                if let error {
-                    print(error)
-                    ansError = error
-                }
-                if let tempFileURL {
-                    do {
-                        let fm = FileManager.default
-                        print(to)
-                        try fm.moveItem(at: tempFileURL, to: to)
-                    } catch {
-                        ansError = error
-                    }
-                }
-                if self.continuation != nil {
-                    c.resume()
-                }
 
-            }), delegateQueue: .main)
+            let bgConfig = URLSessionConfiguration.background(withIdentifier: "com.livecontainer.download.\(UUID().uuidString)")
+            let session = URLSession(
+                configuration: bgConfig,
+                delegate: DownloadDelegate(
+                    progressCallback: { progress, downloaded, total in
+                        Task {
+                            await MainActor.run {
+                                self.downloadProgress = progress
+                                self.downloadedSize = downloaded
+                                self.totalSize = total
+                            }
+                        }
+                    },
+                    completeCallback: { tempFileURL, error in
+                        Task {
+                            await MainActor.run {
+                                self.isDownloading = false
+                            }
+                        }
+                        if let error {
+                            print(error)
+                            ansError = error
+                        }
+                        if let tempFileURL {
+                            do {
+                                let fm = FileManager.default
+                                print(to)
+                                try fm.moveItem(at: tempFileURL, to: to)
+                            } catch {
+                                ansError = error
+                            }
+                        }
+                        if self.continuation != nil {
+                            c.resume()
+                        }
+
+                    }), delegateQueue: .main)
 
             downloadTask = session.downloadTask(with: url)
             downloadTask?.resume()
@@ -69,7 +77,7 @@ public final class DownloadHelper : ObservableObject {
             throw ansError
         }
     }
-    
+
     func cancel() {
         if let continuation {
             continuation.resume()
@@ -81,25 +89,25 @@ public final class DownloadHelper : ObservableObject {
     }
 }
 
-struct DownloadAlert : View {
-    @StateObject var helper : DownloadHelper
+struct DownloadAlert: View {
+    @StateObject var helper: DownloadHelper
     var body: some View {
-        
-        Color.black.opacity(0.2) // Semi-transparent grey background
-            .edgesIgnoringSafeArea(.all) // Covers entire screen
-        
+
+        Color.black.opacity(0.2)  // Semi-transparent grey background
+            .edgesIgnoringSafeArea(.all)  // Covers entire screen
+
         VStack {
             Text("lc.download.downloading".loc)
                 .font(.headline)
                 .padding(.top)
-            
+
             ProgressView(value: helper.downloadProgress, total: 1)
                 .padding()
-            
+
             Text("\(formatBytes(helper.downloadedSize)) / \(formatBytes(helper.totalSize))")
                 .font(.subheadline)
                 .padding(.bottom)
-            
+
             Button(action: cancelDownload) {
                 Text("lc.common.cancel".loc)
                     .foregroundColor(.red)
@@ -112,32 +120,32 @@ struct DownloadAlert : View {
         .shadow(radius: 10)
         .padding()
     }
-    
+
     private func formatBytes(_ bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB] // Allow KB, MB, and GB
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]  // Allow KB, MB, and GB
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
     }
-    
+
     func cancelDownload() {
         helper.cancel()
     }
 }
 
 public struct DownloadAlertModifier: ViewModifier {
-    @ObservedObject var helper : DownloadHelper
+    @ObservedObject var helper: DownloadHelper
     @State var show = false
-    
+
     public func body(content: Content) -> some View {
 
         ZStack {
             content
             if show {
                 DownloadAlert(helper: helper)
-                
+
             }
-            
+
         }
         .onChange(of: helper.isDownloading) { newVal in
             withAnimation(.easeInOut(duration: 0.1)) {
@@ -151,8 +159,10 @@ class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
     let progressCallback: (Float, Int64, Int64) -> Void
     let completeCallback: (URL?, Error?) -> Void
 
-    init(progressCallback: @escaping (Float, Int64, Int64) -> Void,
-         completeCallback: @escaping (URL?, Error?) -> Void) {
+    init(
+        progressCallback: @escaping (Float, Int64, Int64) -> Void,
+        completeCallback: @escaping (URL?, Error?) -> Void
+    ) {
         self.progressCallback = progressCallback
         self.completeCallback = completeCallback
     }
@@ -175,10 +185,10 @@ class DownloadDelegate: NSObject, URLSessionDownloadDelegate {
         } else {
             completeCallback(location, NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response"]))
         }
-        
+
 
     }
-    
+
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error {
             completeCallback(nil, error)

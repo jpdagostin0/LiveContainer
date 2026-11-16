@@ -58,15 +58,15 @@ static NSString *loadTweakAtURL(NSURL *url) {
         return nil;
     }
     if ([tweakPath hasSuffix:@".framework"]) {
-        NSURL* infoPlistURL = [url URLByAppendingPathComponent:@"Info.plist"];
-        NSDictionary* infoDict = [NSDictionary dictionaryWithContentsOfURL:infoPlistURL];
-        NSString* binary = infoDict[@"CFBundleExecutable"];
-        if(!binary || ![binary isKindOfClass:NSString.class]) {
+        NSURL *infoPlistURL = [url URLByAppendingPathComponent:@"Info.plist"];
+        NSDictionary *infoDict = [NSDictionary dictionaryWithContentsOfURL:infoPlistURL];
+        NSString *binary = infoDict[@"CFBundleExecutable"];
+        if (!binary || ![binary isKindOfClass:NSString.class]) {
             return [NSString stringWithFormat:@"Unable to load %@: Unable to read Info.Plist", tweak];
         }
         tweakPath = [[url URLByAppendingPathComponent:binary] path];
     }
-    
+
     void *handle = dlopen(tweakPath.UTF8String, RTLD_LAZY | RTLD_GLOBAL);
     if (handle) {
         NSLog(@"Loaded tweak %@", tweak);
@@ -79,8 +79,7 @@ static NSString *loadTweakAtURL(NSURL *url) {
 
     // Tweaks must carry a signature from LiveContainer's team certificate to pass
     // library validation; sign it with that cert and retry.
-    if (dlErr && ([dlErr.lowercaseString containsString:@"signature"] || [dlErr.lowercaseString containsString:@"not valid"]
-                  || [dlErr.lowercaseString containsString:@"code sign"] || [dlErr.lowercaseString containsString:@"team"])) {
+    if (dlErr && ([dlErr.lowercaseString containsString:@"signature"] || [dlErr.lowercaseString containsString:@"not valid"] || [dlErr.lowercaseString containsString:@"code sign"] || [dlErr.lowercaseString containsString:@"team"])) {
         NSLog(@"Tweak %@ failed to load (%@); re-signing with team certificate", tweak, dlErr);
         NSString *signErr = nil;
         if (teamSignTweak(tweakPath, &signErr)) {
@@ -90,7 +89,7 @@ static NSString *loadTweakAtURL(NSURL *url) {
                 NSLog(@"Loaded tweak %@ after team-certificate signing", tweak);
                 return nil;
             }
-            if (retryC) dlErr = @(retryC);  // surface the retry's error instead
+            if (retryC) dlErr = @(retryC); // surface the retry's error instead
         } else {
             NSLog(@"Team-certificate signing of %@ failed: %@", tweak, signErr);
             dlErr = [NSString stringWithFormat:@"%@\n(signing %@ with team certificate failed: %@)", dlErr, tweak, signErr];
@@ -107,7 +106,7 @@ static NSString *loadTweakAtURL(NSURL *url) {
 }
 
 static void loadTweaksRecursively(NSURL *folderURL, NSMutableArray *errors) {
-    NSArray<NSURL *> *items = [NSFileManager.defaultManager contentsOfDirectoryAtURL:folderURL includingPropertiesForKeys:@[NSURLIsDirectoryKey] options:0 error:nil];
+    NSArray<NSURL *> *items = [NSFileManager.defaultManager contentsOfDirectoryAtURL:folderURL includingPropertiesForKeys:@[ NSURLIsDirectoryKey ] options:0 error:nil];
     for (NSURL *fileURL in items) {
         NSString *name = fileURL.lastPathComponent;
         if ([name hasSuffix:@".disabled"]) {
@@ -131,11 +130,11 @@ static void loadTweaksRecursively(NSURL *folderURL, NSMutableArray *errors) {
 static void showDlerrAlert(NSString *error) {
     UIWindow *window = [[UIWindow alloc] initWithFrame:UIScreen.mainScreen.bounds];
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Failed to load tweaks" message:error preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         window.windowScene = nil;
     }];
     [alert addAction:okAction];
-    UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Copy" style:UIAlertActionStyleCancel handler:^(UIAlertAction * action) {
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Copy" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
         UIPasteboard.generalPasteboard.string = error;
         window.windowScene = nil;
     }];
@@ -148,8 +147,7 @@ static void showDlerrAlert(NSString *error) {
     objc_setAssociatedObject(alert, @"window", window, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
- __attribute__((constructor))
-static void TweakLoaderConstructor() {
+__attribute__((constructor)) static void TweakLoaderConstructor() {
     const char *tweakFolderC = getenv("LC_GLOBAL_TWEAKS_FOLDER");
     NSString *globalTweakFolder = @(tweakFolderC);
     unsetenv("LC_GLOBAL_TWEAKS_FOLDER");
@@ -158,27 +156,29 @@ static void TweakLoaderConstructor() {
     unsetenv("LC_EMBEDDED_TWEAKS_FOLDER");
     BOOL isDir = NO;
     BOOL useEmbedded = embeddedTweakFolder && [NSFileManager.defaultManager fileExistsAtPath:embeddedTweakFolder isDirectory:&isDir] && isDir;
-    
-    if([NSUserDefaults.guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
+
+    if ([NSUserDefaults.guestAppInfo[@"dontInjectTweakLoader"] boolValue]) {
         // don't load any tweak since tweakloader is loaded after all initializers
         NSLog(@"Skip loading tweaks");
         return;
     }
-    
+
     NSMutableArray *errors = [NSMutableArray new];
-    
+
     NSArray<NSURL *> *globalTweaks = [NSFileManager.defaultManager contentsOfDirectoryAtURL:[NSURL fileURLWithPath:globalTweakFolder]
-    includingPropertiesForKeys:@[] options:0 error:nil];
+                                                                 includingPropertiesForKeys:@[]
+                                                                                    options:0
+                                                                                      error:nil];
     NSString *tweakFolderName = NSUserDefaults.guestAppInfo[@"LCTweakFolder"];
-    
-    if(!useEmbedded && [globalTweaks count] <= 1 && tweakFolderName.length == 0) {
+
+    if (!useEmbedded && [globalTweaks count] <= 1 && tweakFolderName.length == 0) {
         // nothing to load
         return;
     }
 
     // Load CydiaSubstrate
     const char *lcMainBundlePath;
-    if(NSUserDefaults.isLiveProcess) {
+    if (NSUserDefaults.isLiveProcess) {
         lcMainBundlePath = NSUserDefaults.lcMainBundle.bundlePath.stringByDeletingLastPathComponent.stringByDeletingLastPathComponent.fileSystemRepresentation;
     } else {
         lcMainBundlePath = NSUserDefaults.lcMainBundle.bundlePath.fileSystemRepresentation;
@@ -223,7 +223,6 @@ static void TweakLoaderConstructor() {
             NSString *tweakFolder = [globalTweakFolder stringByAppendingPathComponent:tweakFolderName];
             loadTweaksRecursively([NSURL fileURLWithPath:tweakFolder], errors);
         }
-
     }
 
     if (errors.count > 0) {

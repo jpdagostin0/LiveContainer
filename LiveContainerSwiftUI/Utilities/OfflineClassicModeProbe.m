@@ -23,22 +23,30 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
 @end
 
 @implementation LCStaticDiskUsage
-- (NSNumber *)staticUsage { return @0; }
+- (NSNumber *)staticUsage {
+    return @0;
+}
 @end
 
 @interface LCFakeApplicationRecord : NSObject
 @end
 
 @implementation LCFakeApplicationRecord
-- (unsigned)codeSignatureVersion { return 0; }
-- (BOOL)wasBuiltWithThreadSanitizer { return NO; }
+- (unsigned)codeSignatureVersion {
+    return 0;
+}
+- (BOOL)wasBuiltWithThreadSanitizer {
+    return NO;
+}
 @end
 
 @interface LCFakeApplicationIdentity : NSObject
 @end
 
 @implementation LCFakeApplicationIdentity
-- (instancetype)copy { return self; }
+- (instancetype)copy {
+    return self;
+}
 @end
 
 @interface LCFakeProcessIdentity : NSObject <NSCopying>
@@ -54,9 +62,9 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
 @interface LCFakeApplicationProxy : NSObject
 
 - (instancetype)initWithBundle:(NSBundle *)bundle
-                  executableURL:(NSURL *)executableURL
-                     sdkVersion:(NSString *)sdkVersion
-                   entitlements:(NSDictionary *)entitlements;
+                 executableURL:(NSURL *)executableURL
+                    sdkVersion:(NSString *)sdkVersion
+                  entitlements:(NSDictionary *)entitlements;
 
 @property(nonatomic, readonly) NSBundle *bundle;
 @property(nonatomic, readonly) NSURL *executableURL;
@@ -70,16 +78,16 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
 @end
 
 @interface LSBundleInfoCachedValues : NSObject
-- (instancetype) _initWithKeys:(NSSet*)keys forDictionary:(NSDictionary*)dict;
+- (instancetype)_initWithKeys:(NSSet *)keys forDictionary:(NSDictionary *)dict;
 @end
 
 @interface SBApplicationInfo : NSObject
-- (instancetype)_initWithApplicationProxy:(id)proxy overrideURL:(NSURL*)overrideURL;
-- (instancetype)_initWithApplicationProxy:(id)proxy record:(id)record appIdentity:(id)identity processIdentity:(id)identity2 overrideURL:(NSURL*)overrideURL;
+- (instancetype)_initWithApplicationProxy:(id)proxy overrideURL:(NSURL *)overrideURL;
+- (instancetype)_initWithApplicationProxy:(id)proxy record:(id)record appIdentity:(id)identity processIdentity:(id)identity2 overrideURL:(NSURL *)overrideURL;
 @end
 
 @interface SBApplication : NSObject
-- (instancetype)initWithApplicationInfo:(SBApplicationInfo*)info;
+- (instancetype)initWithApplicationInfo:(SBApplicationInfo *)info;
 - (NSInteger)_defaultClassicMode;
 @end
 
@@ -90,21 +98,21 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
 }
 
 - (instancetype)initWithBundle:(NSBundle *)bundle
-                  executableURL:(NSURL *)executableURL
-                     sdkVersion:(NSString *)sdkVersion
-                   entitlements:(NSDictionary *)entitlements {
+                 executableURL:(NSURL *)executableURL
+                    sdkVersion:(NSString *)sdkVersion
+                  entitlements:(NSDictionary *)entitlements {
     self = [super init];
     if (self) {
         _bundle = bundle;
         _executableURL = executableURL;
         _linkedSDKVersion = [sdkVersion copy];
         _codeEntitlements = [entitlements copy] ?: @{};
-        
-        _LSApplicationState* state = [PrivClass(_LSApplicationState) alloc];
+
+        _LSApplicationState *state = [PrivClass(_LSApplicationState) alloc];
         uint64_t stateFlags = 0x14;
         LCSetScalarIvar(state, "_stateFlags", &stateFlags, sizeof(stateFlags));
         _state = state;
-        
+
         _diskUsage = [LCStaticDiskUsage new];
         _cacheGUID = [NSUUID UUID];
     }
@@ -112,39 +120,66 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
 }
 
 // LSBundleProxy-compatible surface.
-- (NSString *)bundleIdentifier { return self.bundle.bundleIdentifier; }
-- (NSURL *)bundleURL { return self.bundle.bundleURL; }
+- (NSString *)bundleIdentifier {
+    return self.bundle.bundleIdentifier;
+}
+- (NSURL *)bundleURL {
+    return self.bundle.bundleURL;
+}
 - (NSString *)bundleVersion {
     return [self.bundle objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"0";
 }
-- (NSString *)bundleType { return @"Application"; }
+- (NSString *)bundleType {
+    return @"Application";
+}
 - (NSString *)localizedName {
     return [self.bundle objectForInfoDictionaryKey:@"CFBundleDisplayName"]
         ?: [self.bundle objectForInfoDictionaryKey:@"CFBundleName"]
-        ?: self.bundleIdentifier;
+        ?
+        : self.bundleIdentifier;
 }
-- (NSString *)localizedShortName { return [self localizedName]; }
+- (NSString *)localizedShortName {
+    return [self localizedName];
+}
 - (NSString *)bundleExecutable {
     return [self.bundle objectForInfoDictionaryKey:@"CFBundleExecutable"];
 }
-- (NSString *)canonicalExecutablePath { return self.executableURL.path; }
-- (NSString *)sdkVersion { return self.linkedSDKVersion; }
-- (NSURL *)bundleContainerURL { return self.bundleURL.URLByDeletingLastPathComponent; }
-- (NSURL *)dataContainerURL { return nil; }
-- (NSURL *)containerURL { return nil; }
-- (NSUInteger)sequenceNumber { return 0; }
-- (NSUInteger)compatibilityState { return 0; }
-- (NSUUID *)cacheGUID { return _cacheGUID; }
-- (NSNumber*)genreID { return @0; }
+- (NSString *)canonicalExecutablePath {
+    return self.executableURL.path;
+}
+- (NSString *)sdkVersion {
+    return self.linkedSDKVersion;
+}
+- (NSURL *)bundleContainerURL {
+    return self.bundleURL.URLByDeletingLastPathComponent;
+}
+- (NSURL *)dataContainerURL {
+    return nil;
+}
+- (NSURL *)containerURL {
+    return nil;
+}
+- (NSUInteger)sequenceNumber {
+    return 0;
+}
+- (NSUInteger)compatibilityState {
+    return 0;
+}
+- (NSUUID *)cacheGUID {
+    return _cacheGUID;
+}
+- (NSNumber *)genreID {
+    return @0;
+}
 
 - (LSBundleInfoCachedValues *)objectsForInfoDictionaryKeys:(NSSet *)keys {
     NSMutableDictionary *result = [NSMutableDictionary dictionaryWithCapacity:keys.count];
-    
+
     for (NSString *key in keys) {
         id value = [self.bundle objectForInfoDictionaryKey:key];
         if (value) result[key] = value;
     }
-    
+
     return [[PrivClass(LSBundleInfoCachedValues) alloc] _initWithKeys:keys forDictionary:result];
 }
 
@@ -152,26 +187,48 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
     return [[PrivClass(LSBundleInfoCachedValues) alloc] _initWithKeys:keys forDictionary:@{}];
 }
 
-- (NSDictionary *)entitlements { return self.codeEntitlements; }
-- (NSDictionary *)environmentVariables { return @{}; }
-- (NSArray *)machOUUIDs { return @[]; }
-- (NSDictionary *)groupContainerURLs { return @{}; }
+- (NSDictionary *)entitlements {
+    return self.codeEntitlements;
+}
+- (NSDictionary *)environmentVariables {
+    return @{};
+}
+- (NSArray *)machOUUIDs {
+    return @[];
+}
+- (NSDictionary *)groupContainerURLs {
+    return @{};
+}
 - (NSString *)shortVersionString {
     return [self.bundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
 }
 - (NSString *)applicationIdentifier {
     return self.codeEntitlements[@"application-identifier"] ?: self.bundleIdentifier;
 }
-- (NSString *)appIDPrefix { return nil; }
-- (NSString *)applicationDSID { return nil; }
-- (NSNumber *)platform { return @2; } // iOS
-- (NSNumber *)staticDiskUsage { return @0; }
-- (NSNumber *)dynamicDiskUsage { return @0; }
+- (NSString *)appIDPrefix {
+    return nil;
+}
+- (NSString *)applicationDSID {
+    return nil;
+}
+- (NSNumber *)platform {
+    return @2;
+} // iOS
+- (NSNumber *)staticDiskUsage {
+    return @0;
+}
+- (NSNumber *)dynamicDiskUsage {
+    return @0;
+}
 
 // LSApplicationProxy-compatible surface used by FBSApplicationInfo and
 // SBApplicationInfo while the designated initializer is running.
-- (id)appState { return _state; }
-- (NSString *)applicationType { return @"User"; }
+- (id)appState {
+    return _state;
+}
+- (NSString *)applicationType {
+    return @"User";
+}
 - (NSArray *)deviceFamily {
     id value = [self.bundle objectForInfoDictionaryKey:@"UIDeviceFamily"];
     return [value isKindOfClass:NSArray.class] ? value : nil;
@@ -180,47 +237,129 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
     id value = [self.bundle objectForInfoDictionaryKey:@"UIRequiredDeviceCapabilities"];
     return [value isKindOfClass:NSArray.class] ? value : nil;
 }
-- (NSString *)signerIdentity { return nil; }
-- (NSString *)teamID { return self.codeEntitlements[@"com.apple.developer.team-identifier"]; }
-- (NSString *)teamIdentifier { return [self teamID]; }
-- (BOOL)profileValidated { return YES; }
-- (BOOL)UPPValidated { return NO; }
-- (BOOL)freeProfileValidated { return NO; }
-- (BOOL)isBetaApp { return NO; }
-- (BOOL)isBeta { return NO; }
-- (BOOL)isRestricted { return NO; }
-- (BOOL)isPlaceholder { return NO; }
-- (BOOL)isInstalled { return YES; }
-- (BOOL)isDeletable { return NO; }
-- (BOOL)isDeletableIgnoringRestrictions { return NO; }
-- (BOOL)isRemoveableSystemApp { return NO; }
-- (BOOL)isRemovedSystemApp { return NO; }
-- (BOOL)isAppUpdate { return NO; }
-- (BOOL)isDeviceBasedVPP { return NO; }
-- (BOOL)isPurchasedReDownload { return NO; }
-- (BOOL)isWhitelisted { return YES; }
-- (BOOL)missingRequiredSINF { return NO; }
-- (BOOL)fileSharingEnabled { return NO; }
-- (BOOL)hasMIDBasedSINF { return YES; }
-- (BOOL)isGameCenterEnabled { return NO; }
-- (BOOL)gameCenterEverEnabled { return NO; }
-- (BOOL)isArcadeApp { return NO; }
-- (NSUInteger)installType { return 1; }
-- (NSUInteger)originalInstallType { return 1; }
-- (NSInteger)deviceManagementPolicy { return 0; }
-- (NSNumber *)ratingRank { return @0; }
-- (NSNumber *)itemID { return nil; }
-- (NSNumber *)purchaserDSID { return nil; }
-- (NSNumber *)downloaderDSID { return nil; }
-- (id)diskUsage { return _diskUsage; }
-- (NSString *)genre { return nil; }
-- (NSArray *)subgenres { return nil; }
-- (NSString *)vendorName { return nil; }
-- (NSArray*)UIBackgroundModes { return nil; }
-- (NSArray*)appTags { return nil; }
-- (BOOL)supportsMultiwindow { return nil; }
-- (LCFakeApplicationRecord*)correspondingApplicationRecord { return nil; }
-- (LCFakeApplicationRecord*)fbs_correspondingApplicationRecord { return nil; }
+- (NSString *)signerIdentity {
+    return nil;
+}
+- (NSString *)teamID {
+    return self.codeEntitlements[@"com.apple.developer.team-identifier"];
+}
+- (NSString *)teamIdentifier {
+    return [self teamID];
+}
+- (BOOL)profileValidated {
+    return YES;
+}
+- (BOOL)UPPValidated {
+    return NO;
+}
+- (BOOL)freeProfileValidated {
+    return NO;
+}
+- (BOOL)isBetaApp {
+    return NO;
+}
+- (BOOL)isBeta {
+    return NO;
+}
+- (BOOL)isRestricted {
+    return NO;
+}
+- (BOOL)isPlaceholder {
+    return NO;
+}
+- (BOOL)isInstalled {
+    return YES;
+}
+- (BOOL)isDeletable {
+    return NO;
+}
+- (BOOL)isDeletableIgnoringRestrictions {
+    return NO;
+}
+- (BOOL)isRemoveableSystemApp {
+    return NO;
+}
+- (BOOL)isRemovedSystemApp {
+    return NO;
+}
+- (BOOL)isAppUpdate {
+    return NO;
+}
+- (BOOL)isDeviceBasedVPP {
+    return NO;
+}
+- (BOOL)isPurchasedReDownload {
+    return NO;
+}
+- (BOOL)isWhitelisted {
+    return YES;
+}
+- (BOOL)missingRequiredSINF {
+    return NO;
+}
+- (BOOL)fileSharingEnabled {
+    return NO;
+}
+- (BOOL)hasMIDBasedSINF {
+    return YES;
+}
+- (BOOL)isGameCenterEnabled {
+    return NO;
+}
+- (BOOL)gameCenterEverEnabled {
+    return NO;
+}
+- (BOOL)isArcadeApp {
+    return NO;
+}
+- (NSUInteger)installType {
+    return 1;
+}
+- (NSUInteger)originalInstallType {
+    return 1;
+}
+- (NSInteger)deviceManagementPolicy {
+    return 0;
+}
+- (NSNumber *)ratingRank {
+    return @0;
+}
+- (NSNumber *)itemID {
+    return nil;
+}
+- (NSNumber *)purchaserDSID {
+    return nil;
+}
+- (NSNumber *)downloaderDSID {
+    return nil;
+}
+- (id)diskUsage {
+    return _diskUsage;
+}
+- (NSString *)genre {
+    return nil;
+}
+- (NSArray *)subgenres {
+    return nil;
+}
+- (NSString *)vendorName {
+    return nil;
+}
+- (NSArray *)UIBackgroundModes {
+    return nil;
+}
+- (NSArray *)appTags {
+    return nil;
+}
+- (BOOL)supportsMultiwindow {
+    return nil;
+}
+- (LCFakeApplicationRecord *)correspondingApplicationRecord {
+    return nil;
+}
+- (LCFakeApplicationRecord *)fbs_correspondingApplicationRecord {
+    return nil;
+}
 @end
 
 void LCLoadSpringBoardFramework(void) {
@@ -228,7 +367,7 @@ void LCLoadSpringBoardFramework(void) {
         dlerror();
         void *springBoard = dlopen("/System/Library/PrivateFrameworks/SpringBoard.framework/SpringBoard",
                                    RTLD_LAZY | RTLD_GLOBAL);
-        
+
         NSCAssert(springBoard, @"Cannot load SpringBoard.framework: %s",
                   dlerror() ?: "unknown dlopen error");
     });
@@ -236,14 +375,14 @@ void LCLoadSpringBoardFramework(void) {
 
 static NSString *LCVersionString(uint32_t version) {
     return [NSString stringWithFormat:@"%u.%u.%u",
-            version >> 16, (version >> 8) & 0xff, version & 0xff];
+                                      version >> 16, (version >> 8) & 0xff, version & 0xff];
 }
 
 NSNumber *LCGetDefaultClassicMode(NSURL *appURL) {
     NSBundle *bundle = [NSBundle bundleWithURL:appURL];
     NSURL *executableURL = bundle.executableURL;
     assert(bundle && executableURL);
-    
+
     static Class SBApplicationClass;
     static Class SBApplicationInfoClass;
     static dispatch_once_t onceToken;
@@ -252,26 +391,26 @@ NSNumber *LCGetDefaultClassicMode(NSURL *appURL) {
         SBApplicationClass = PrivClass(SBApplication);
         SBApplicationInfoClass = PrivClass(SBApplicationInfo);
     });
-    
+
     __block uint32_t sdk = 0;
     LCParseMachO(executableURL.fileSystemRepresentation, true, ^(const char *path, struct mach_header_64 *header, int fd, void *filePtr) {
         sdk = dyld_get_sdk_version((const struct mach_header *)header);
     });
-    
+
     LCFakeApplicationProxy *proxy = [[LCFakeApplicationProxy alloc]
-                                     initWithBundle:bundle
-                                     executableURL:executableURL
-                                     sdkVersion:LCVersionString(sdk)
-                                     entitlements:@{}];
-    
-    SBApplicationInfo* sbAppInfo;
+        initWithBundle:bundle
+         executableURL:executableURL
+            sdkVersion:LCVersionString(sdk)
+          entitlements:@{}];
+
+    SBApplicationInfo *sbAppInfo;
     if ([SBApplicationInfoClass instancesRespondToSelector:@selector(_initWithApplicationProxy:record:appIdentity:processIdentity:overrideURL:)]) {
         sbAppInfo = [[SBApplicationInfoClass alloc] _initWithApplicationProxy:proxy record:[LCFakeApplicationRecord new] appIdentity:[LCFakeApplicationIdentity new] processIdentity:[LCFakeProcessIdentity new] overrideURL:appURL];
     } else {
         sbAppInfo = [[SBApplicationInfoClass alloc] _initWithApplicationProxy:proxy overrideURL:appURL];
     }
     assert(sbAppInfo);
-    SBApplication* sbApp = [[SBApplicationClass alloc] initWithApplicationInfo:sbAppInfo];
+    SBApplication *sbApp = [[SBApplicationClass alloc] initWithApplicationInfo:sbAppInfo];
     assert(sbApp);
     NSInteger mode = [sbApp _defaultClassicMode];
     return @(mode);

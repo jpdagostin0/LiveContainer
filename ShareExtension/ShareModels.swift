@@ -19,7 +19,7 @@ final class SharePayload: ObservableObject {
         }
         return nil
     }
-    
+
     static func load(from context: NSExtensionContext?) async throws -> SharePayload.Kind {
         guard let items = context?.inputItems as? [NSExtensionItem] else {
             return .empty

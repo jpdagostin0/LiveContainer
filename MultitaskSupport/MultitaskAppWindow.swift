@@ -11,7 +11,7 @@ struct MultitaskAppInfo {
     var displayName: String
     var dataUUID: String
     var bundleId: String
-    
+
     init(displayName: String, dataUUID: String, bundleId: String) {
         self.displayName = displayName
         self.dataUUID = dataUUID
@@ -23,14 +23,14 @@ struct MultitaskAppInfo {
 @objc class MultitaskWindowManager: NSObject {
     @Environment(\.openWindow) static var openWindow
     static var appDict: [String: MultitaskAppInfo] = [:]
-    
+
     @objc class func openAppWindow(displayName: String, dataUUID: String, bundleId: String, pidCallback: ((NSNumber, Error?) -> Void)?) {
         DataManager.shared.model.enableMultipleWindow = true
         DataManager.shared.model.pidCallback = pidCallback
         appDict[dataUUID] = MultitaskAppInfo(displayName: displayName, dataUUID: dataUUID, bundleId: bundleId)
         openWindow(id: "appView", value: dataUUID)
     }
-    
+
     @objc class func openExistingAppWindow(dataUUID: String) -> Bool {
         for a in appDict {
             if a.value.dataUUID == dataUUID {
@@ -49,7 +49,7 @@ struct AppSceneViewSwiftUI: UIViewControllerRepresentable {
     let dataUUID: String
     let initSize: CGSize
     let onAppInitialize: (Int32, Error?) -> Void
-    
+
     class Coordinator: NSObject, AppSceneViewControllerDelegate {
         let onExit: () -> Void
         let onAppInitialize: (Int32, Error?) -> Void
@@ -57,18 +57,18 @@ struct AppSceneViewSwiftUI: UIViewControllerRepresentable {
             self.onAppInitialize = onAppInitialize
             self.onExit = onExit
         }
-        
+
         func appSceneVCAppDidExit(_: AppSceneViewController!) {
             onExit()
         }
-        
+
         func appSceneVC(_ vc: AppSceneViewController!, didInitializeWithError error: (any Error)!) {
             DispatchQueue.main.async {
                 (vc.view.window?.windowScene?.statusBarManager as? LCStatusBarManager)?.nativeWindowViewController = vc
             }
             onAppInitialize(vc.pid, error)
         }
-        
+
         func appSceneVCWillActivateScene(_ vc: AppSceneViewController!) {
             vc.updateSettings { settings in
                 guard let settings else { return }
@@ -77,7 +77,7 @@ struct AppSceneViewSwiftUI: UIViewControllerRepresentable {
                 settings.safeAreaInsetsPortrait = defaultInsets
                 settings.deviceOrientation = UIDevice.current.orientation
                 settings.setInterfaceOrientation(UIApplication.shared.statusBarOrientation)
-                if(settings.interfaceOrientation().isLandscape) {
+                if settings.interfaceOrientation().isLandscape {
                     settings.setFrame(CGRect(x: 0, y: 0, width: vc.view.frame.size.height, height: vc.view.frame.size.width))
                 } else {
                     settings.setFrame(CGRect(x: 0, y: 0, width: vc.view.frame.size.width, height: vc.view.frame.size.height))
@@ -86,7 +86,7 @@ struct AppSceneViewSwiftUI: UIViewControllerRepresentable {
             // fix live resize
             vc.contentView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         }
-        
+
         func appSceneVC(_ vc: AppSceneViewController!, didUpdateFrom settings: UIMutableApplicationSceneSettings!, transitionContext context: Any!, lifecycleActionType actionType: UInt32) {
             settings.interruptionPolicy = 0
             //settings.peripheryInsets = vc.view.window?.safeAreaInsets ?? .zero
@@ -98,17 +98,19 @@ struct AppSceneViewSwiftUI: UIViewControllerRepresentable {
             }
         }
     }
-    
+
     func makeCoordinator() -> Coordinator {
-        Coordinator(onAppInitialize: onAppInitialize, onExit: {
-            show = false
-        })
+        Coordinator(
+            onAppInitialize: onAppInitialize,
+            onExit: {
+                show = false
+            })
     }
-    
+
     func makeUIViewController(context: Context) -> UIViewController {
         return AppSceneViewController(bundleId: bundleId, dataUUID: dataUUID, delegate: context.coordinator)
     }
-    
+
     func updateUIViewController(_ vc: UIViewController, context _: Context) {
         if let vc = vc as? AppSceneViewController {
             if !show {
@@ -137,23 +139,25 @@ struct MultitaskAppWindow: View {
         }
         _appInfo = State(initialValue: appInfo)
     }
-    
+
     var body: some View {
         let isVirtualWindowMode = multitaskMode == .virtualWindow
         if show, let appInfo {
             GeometryReader { geometry in
-                AppSceneViewSwiftUI(show: $show, bundleId: appInfo.bundleId, dataUUID: appInfo.dataUUID, initSize: geometry.size,
-                                    onAppInitialize: { pid, error in
-                    DispatchQueue.main.async {
-                        if error == nil {
-                            self.pid = Int(pid)
-                        } else {
-                            self.errorMessage = error?.localizedDescription
+                AppSceneViewSwiftUI(
+                    show: $show, bundleId: appInfo.bundleId, dataUUID: appInfo.dataUUID, initSize: geometry.size,
+                    onAppInitialize: { pid, error in
+                        DispatchQueue.main.async {
+                            if error == nil {
+                                self.pid = Int(pid)
+                            } else {
+                                self.errorMessage = error?.localizedDescription
+                            }
+                            DataManager.shared.model.pidCallback?(NSNumber(value: pid), error)
+                            DataManager.shared.model.pidCallback = nil
                         }
-                        DataManager.shared.model.pidCallback?(NSNumber(value: pid), error)
-                        DataManager.shared.model.pidCallback = nil
                     }
-                })
+                )
                 .background(.black)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -164,7 +168,7 @@ struct MultitaskAppWindow: View {
                     show = false
                 }
             }
-            
+
         } else if skipTerminatedScreen && isVirtualWindowMode, appInfo != nil {
             Color.clear
                 .ignoresSafeArea(.all, edges: .all)
@@ -218,7 +222,7 @@ struct MultitaskAppWindow: View {
             }
         }
     }
-    
+
     private func requestSceneDestruction(isManual: Bool = false) {
         if isManual {
             didRequestManualClose = true
@@ -234,25 +238,26 @@ struct MultitaskAppWindow: View {
 class MultitaskRelaunchManager: NSObject {
     private static var pendingKeys: Set<String> = []
     private static let pendingLock = NSLock()
-    
+
     static func scheduleRelaunchIfNeeded(bundleId: String, dataUUID: String, isManualTermination: Bool) {
         let defaults = LCUtils.appGroupUserDefault
         let multitaskMode = MultitaskMode(rawValue: defaults.integer(forKey: "LCMultitaskMode")) ?? .virtualWindow
         guard defaults.bool(forKey: "LCSkipTerminatedScreen"),
-              defaults.bool(forKey: "LCRestartTerminatedApp"),
-              multitaskMode == .virtualWindow,
-              !isManualTermination else { return }
-        
+            defaults.bool(forKey: "LCRestartTerminatedApp"),
+            multitaskMode == .virtualWindow,
+            !isManualTermination
+        else { return }
+
         let key = "\(bundleId)#\(dataUUID)"
         guard markPendingIfNeeded(key: key) else { return }
-        
+
         Task {
             defer { clearPending(key: key) }
             try? await Task.sleep(nanoseconds: 500_000_000)
             await relaunchApp(bundleId: bundleId, dataUUID: dataUUID)
         }
     }
-    
+
     private static func markPendingIfNeeded(key: String) -> Bool {
         pendingLock.lock()
         defer { pendingLock.unlock() }
@@ -262,27 +267,27 @@ class MultitaskRelaunchManager: NSObject {
         pendingKeys.insert(key)
         return true
     }
-    
+
     private static func clearPending(key: String) {
         pendingLock.lock()
         pendingKeys.remove(key)
         pendingLock.unlock()
     }
-    
+
     private static func relaunchApp(bundleId: String, dataUUID: String) async {
         guard let appModel = await MainActor.run(body: { lookupAppModel(bundleId: bundleId) }),
-              appModel.appInfo.lastLaunched.distance(to: .now) > 2
+            appModel.appInfo.lastLaunched.distance(to: .now) > 2
         else {
             return
         }
-        
+
         do {
             try await appModel.runApp(multitask: true, containerFolderName: dataUUID)
         } catch {
             print("Failed to restart \(bundleId): \(error)")
         }
     }
-    
+
     @MainActor private static func lookupAppModel(bundleId: String) -> LCAppModel? {
         let sharedModel = DataManager.shared.model
         if let app = sharedModel.apps.first(where: { $0.appInfo.relativeBundlePath == bundleId }) {

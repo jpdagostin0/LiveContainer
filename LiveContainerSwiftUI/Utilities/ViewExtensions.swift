@@ -5,12 +5,12 @@
 //  Created by s s on 2026/3/20.
 //
 
-import SwiftUI
-import UniformTypeIdentifiers
+import Combine
 import LocalAuthentication
 import SafariServices
 import Security
-import Combine
+import SwiftUI
+import UniformTypeIdentifiers
 
 struct SafariView: UIViewControllerRepresentable {
     let url: Binding<URL>
@@ -18,7 +18,7 @@ struct SafariView: UIViewControllerRepresentable {
         return SFSafariViewController(url: url.wrappedValue)
     }
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: UIViewControllerRepresentableContext<SafariView>) {
-        
+
     }
 }
 
@@ -35,40 +35,41 @@ extension View {
     ) -> some View {
         self.modifier(TextFieldAlertModifier(isPresented: isPresented, title: title, text: text, placeholder: placeholder, action: action, actionCancel: actionCancel))
     }
-    
+
     public func betterFileImporter(
         isPresented: Binding<Bool>,
-        types : [UTType],
-        multiple : Bool = false,
-        callback: @escaping ([URL]) -> (),
+        types: [UTType],
+        multiple: Bool = false,
+        callback: @escaping ([URL]) -> Void,
         onDismiss: @escaping () -> Void
     ) -> some View {
         self.modifier(DocModifier(isPresented: isPresented, types: types, multiple: multiple, callback: callback, onDismiss: onDismiss))
     }
-    
+
     func onBackground(_ f: @escaping () -> Void) -> some View {
         self.onReceive(
             NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification),
             perform: { _ in f() }
         )
     }
-    
+
     func onForeground(_ f: @escaping () -> Void) -> some View {
         self.onReceive(
             NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification),
             perform: { _ in f() }
         )
     }
-    
+
     func rainbow() -> some View {
         self.modifier(RainbowAnimation())
     }
-    
+
     func navigationBarProgressBar(show: Binding<Bool>, progress: Binding<Float>) -> some View {
         self.modifier(NavigationBarProgressModifier(show: show, progress: progress))
     }
-    
-    func modifier<ModifiedContent: View>(@ViewBuilder body: (_ content: Self) -> ModifiedContent
+
+    func modifier<ModifiedContent: View>(
+        @ViewBuilder body: (_ content: Self) -> ModifiedContent
     ) -> ModifiedContent {
         body(self)
     }
@@ -77,16 +78,16 @@ extension View {
 public struct DocModifier: ViewModifier {
     @EnvironmentObject var sceneDelegate: SceneDelegate
     @State private var docController: UIDocumentPickerViewController?
-    @State private var delegate : UIDocumentPickerDelegate
-    
+    @State private var delegate: UIDocumentPickerDelegate
+
     @Binding var isPresented: Bool
 
-    var callback: ([URL]) -> ()
+    var callback: ([URL]) -> Void
     private let onDismiss: () -> Void
-    private let types : [UTType]
-    private let multiple : Bool
-    
-    init(isPresented : Binding<Bool>, types : [UTType], multiple : Bool, callback: @escaping ([URL]) -> (), onDismiss: @escaping () -> Void) {
+    private let types: [UTType]
+    private let multiple: Bool
+
+    init(isPresented: Binding<Bool>, types: [UTType], multiple: Bool, callback: @escaping ([URL]) -> Void, onDismiss: @escaping () -> Void) {
         self.callback = callback
         self.onDismiss = onDismiss
         self.types = types
@@ -114,16 +115,16 @@ public struct DocModifier: ViewModifier {
         isPresented = false
         docController = nil
     }
-    
+
     class Coordinator: NSObject, UIDocumentPickerDelegate {
-        var callback: ([URL]) -> ()
+        var callback: ([URL]) -> Void
         private let onDismiss: () -> Void
-        
+
         init(callback: @escaping ([URL]) -> Void, onDismiss: @escaping () -> Void) {
             self.callback = callback
             self.onDismiss = onDismiss
         }
-        
+
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             callback(urls)
             onDismiss()
@@ -167,14 +168,16 @@ public struct TextFieldAlertModifier: ViewModifier {
             $0.text = self.text.wrappedValue
             $0.clearButtonMode = .always
         }
-        controller.addAction(UIAlertAction(title: "lc.common.cancel".loc, style: .cancel) { _ in
-            self.actionCancel(nil)
-            shutdown()
-        })
-        controller.addAction(UIAlertAction(title: "lc.common.ok".loc, style: .default) { _ in
-            self.action(controller.textFields?.first?.text)
-            shutdown()
-        })
+        controller.addAction(
+            UIAlertAction(title: "lc.common.cancel".loc, style: .cancel) { _ in
+                self.actionCancel(nil)
+                shutdown()
+            })
+        controller.addAction(
+            UIAlertAction(title: "lc.common.ok".loc, style: .default) { _ in
+                self.action(controller.textFields?.first?.text)
+                shutdown()
+            })
         return controller
     }
 
@@ -233,10 +236,9 @@ private struct NavigationBarProgressView: UIViewControllerRepresentable {
 
             let barProgress = UIProgressView(progressViewStyle: .bar)
             barProgress.translatesAutoresizingMaskIntoConstraints = false
-            var contentView : UIView? = nil
+            var contentView: UIView? = nil
             for curView in navigationBar.subviews {
-                if NSStringFromClass(curView.classForCoder) == "_UINavigationBarContentView" ||
-                    NSStringFromClass(curView.classForCoder) == "UIKit.NavigationBarContentView" {
+                if NSStringFromClass(curView.classForCoder) == "_UINavigationBarContentView" || NSStringFromClass(curView.classForCoder) == "UIKit.NavigationBarContentView" {
                     contentView = curView
                     break
                 }
@@ -246,7 +248,7 @@ private struct NavigationBarProgressView: UIViewControllerRepresentable {
                 NSLayoutConstraint.activate([
                     barProgress.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
                     barProgress.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-                    barProgress.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+                    barProgress.bottomAnchor.constraint(equalTo: contentView.bottomAnchor),
                 ])
             }
             self.progressView = barProgress
@@ -271,18 +273,20 @@ struct RainbowAnimation: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-    // 3
-        let gradient = LinearGradient(gradient: Gradient(colors: hueColors+hueColors), startPoint: .leading, endPoint: .trailing)
-        return content.overlay(GeometryReader { proxy in
-            ZStack {
-                gradient
-    // 4
-                    .frame(width: 2*proxy.size.width)
-    // 5
-                    .offset(x: self.isOn ? -proxy.size.width : 0)
+        // 3
+        let gradient = LinearGradient(gradient: Gradient(colors: hueColors + hueColors), startPoint: .leading, endPoint: .trailing)
+        return content.overlay(
+            GeometryReader { proxy in
+                ZStack {
+                    gradient
+                        // 4
+                        .frame(width: 2 * proxy.size.width)
+                        // 5
+                        .offset(x: self.isOn ? -proxy.size.width : 0)
+                }
             }
-        })
-    // 6
+        )
+        // 6
         .onAppear {
             withAnimation(self.animation) {
                 self.isOn = true
@@ -322,13 +326,13 @@ private class SizedHostingController<Content: View>: UIHostingController<Content
 
 struct IconImageView: View {
     var icon: UIImage
-    
+
     var body: some View {
         GeometryReader { g in
             Image(uiImage: icon)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .clipShape(RoundedRectangle(cornerRadius: g.size.width*0.2667))
+                .clipShape(RoundedRectangle(cornerRadius: g.size.width * 0.2667))
         }
     }
 }
@@ -346,19 +350,21 @@ extension UIViewController {
         }
 
         return await withUnsafeContinuation { continuation in
-            let finishConfirmation =  { (result: Bool?, alert: UIAlertController?) in
+            let finishConfirmation = { (result: Bool?, alert: UIAlertController?) in
                 alert?.dismiss(animated: true) {
                     continuation.resume(returning: result)
                 }
             }
-            
+
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: confirmTitle, style: .destructive) { [weak alert] _ in
-                finishConfirmation(true, alert)
-            })
-            alert.addAction(UIAlertAction(title: cancelTitle, style: .cancel) { [weak alert] _ in
-                finishConfirmation(false, alert)
-            })
+            alert.addAction(
+                UIAlertAction(title: confirmTitle, style: .destructive) { [weak alert] _ in
+                    finishConfirmation(true, alert)
+                })
+            alert.addAction(
+                UIAlertAction(title: cancelTitle, style: .cancel) { [weak alert] _ in
+                    finishConfirmation(false, alert)
+                })
             present(alert, animated: true)
         }
     }
@@ -374,9 +380,10 @@ extension UIViewController {
             }
             let alert = UIAlertController(title: "lc.common.error".loc, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "lc.common.ok".loc, style: .default))
-            alert.addAction(UIAlertAction(title: "lc.common.copy".loc, style: .default) { _ in
-                UIPasteboard.general.string = message
-            })
+            alert.addAction(
+                UIAlertAction(title: "lc.common.copy".loc, style: .default) { _ in
+                    UIPasteboard.general.string = message
+                })
             self.present(alert, animated: true)
         }
 

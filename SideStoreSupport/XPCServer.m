@@ -14,7 +14,7 @@
 
 @implementation ServerDelegate
 
-- (BOOL)listener:(NSXPCListener *)listener shouldAcceptNewConnection:(NSXPCConnection *)newConnection {
+- (BOOL)listener:(NSXPCListener*)listener shouldAcceptNewConnection:(NSXPCConnection*)newConnection {
     newConnection.exportedInterface = [NSXPCInterface interfaceWithProtocol:@protocol(RefreshServer)];
     newConnection.exportedObject = self.reporter;
     [self.reporter onConnection:newConnection];
@@ -27,17 +27,17 @@
 ServerDelegate* staticDelegate = nil;
 
 NSXPCListener* startAnonymousListener(NSObject<RefreshServer>* reporter) {
-    ServerDelegate *delegate = [ServerDelegate new];
+    ServerDelegate* delegate = [ServerDelegate new];
     staticDelegate = delegate;
     delegate.reporter = reporter;
-    NSXPCListener *listener = [NSXPCListener anonymousListener];
+    NSXPCListener* listener = [NSXPCListener anonymousListener];
     listener.delegate = delegate;
     [listener resume];
     return listener;
 }
 
 NSData* bookmarkForURL(NSURL* url) {
-    return [url bookmarkDataWithOptions:(1<<11) includingResourceValuesForKeys:0 relativeToURL:0 error:0];
+    return [url bookmarkDataWithOptions:(1 << 11) includingResourceValuesForKeys:0 relativeToURL:0 error:0];
 }
 
 NSXPCInterface* RefreshClientInterface(void) {

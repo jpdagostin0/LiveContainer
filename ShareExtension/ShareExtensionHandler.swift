@@ -17,7 +17,7 @@ final class ShareExtensionHandler: UIViewController {
             host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             host.view.topAnchor.constraint(equalTo: view.topAnchor),
-            host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+            host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
         host.didMove(toParent: self)
         viewModel.loadPayload(from: extensionContext)

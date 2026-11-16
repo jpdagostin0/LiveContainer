@@ -21,7 +21,7 @@ static NSError *LCFairPlayMakeError(LCFairPlayErrorCode code,
                                     NSArray<NSString *> *roots,
                                     NSError *underlyingError) {
     NSMutableDictionary *userInfo = [NSMutableDictionary dictionaryWithObject:description
-                                                                        forKey:NSLocalizedDescriptionKey];
+                                                                       forKey:NSLocalizedDescriptionKey];
     if (diagnostics.count) {
         userInfo[LCFairPlayDiagnosticsKey] = diagnostics;
     }
@@ -231,7 +231,7 @@ static BOOL LCFairPlayReplicateSinf(NSURL *appURL,
     }
 
     [diagnostics addObject:[NSString stringWithFormat:@"Replicated the main SINF to %lu nested location(s).",
-                            (unsigned long)replicated]];
+                                                      (unsigned long)replicated]];
     return YES;
 }
 
@@ -246,13 +246,13 @@ static BOOL LCFairPlayCopyTreeWithoutSCInfo(NSURL *sourceURL, NSURL *destination
 
     __block NSError *enumerationFailure = nil;
     NSDirectoryEnumerator<NSURL *> *enumerator = [fileManager enumeratorAtURL:sourceURL
-                                                   includingPropertiesForKeys:@[NSURLIsDirectoryKey, NSURLIsSymbolicLinkKey]
+                                                   includingPropertiesForKeys:@[ NSURLIsDirectoryKey, NSURLIsSymbolicLinkKey ]
                                                                       options:0
                                                                  errorHandler:^BOOL(NSURL *url, NSError *enumerationError) {
-        (void)url;
-        enumerationFailure = enumerationError;
-        return NO;
-    }];
+                                                                     (void)url;
+                                                                     enumerationFailure = enumerationError;
+                                                                     return NO;
+                                                                 }];
 
     for (NSURL *sourceItemURL in enumerator) {
         NSString *relativePath = [sourceItemURL.path substringFromIndex:sourceURL.path.length];
@@ -285,9 +285,7 @@ static BOOL LCFairPlayCopyTreeWithoutSCInfo(NSURL *sourceURL, NSURL *destination
             }
         } else if (isSymbolicLink.boolValue) {
             NSString *target = [fileManager destinationOfSymbolicLinkAtPath:sourceItemURL.path error:error];
-            if (!target || ![fileManager createSymbolicLinkAtPath:destinationItemURL.path
-                                               withDestinationPath:target
-                                                             error:error]) {
+            if (!target || ![fileManager createSymbolicLinkAtPath:destinationItemURL.path withDestinationPath:target error:error]) {
                 return NO;
             }
         } else {
@@ -324,9 +322,9 @@ static NSArray<NSString *> *LCFairPlayMachORelativePaths(NSURL *appURL) {
 
 static NSURL *LCFairPlayFindOnlyApp(NSURL *payloadURL, NSError **error) {
     NSArray<NSURL *> *contents = [NSFileManager.defaultManager contentsOfDirectoryAtURL:payloadURL
-                                                            includingPropertiesForKeys:@[NSURLIsDirectoryKey]
-                                                                               options:NSDirectoryEnumerationSkipsHiddenFiles
-                                                                                 error:error];
+                                                             includingPropertiesForKeys:@[ NSURLIsDirectoryKey ]
+                                                                                options:NSDirectoryEnumerationSkipsHiddenFiles
+                                                                                  error:error];
     NSMutableArray<NSURL *> *apps = [NSMutableArray array];
     for (NSURL *url in contents) {
         NSNumber *isDirectory = nil;
@@ -388,14 +386,16 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
     NSFileManager *fileManager = NSFileManager.defaultManager;
     NSString *operationID = NSUUID.UUID.UUIDString;
     NSURL *stagingDirectory = [[stagingRoot URLByAppendingPathComponent:@"AppStoreDecrypt" isDirectory:YES]
-                               URLByAppendingPathComponent:operationID isDirectory:YES];
+        URLByAppendingPathComponent:operationID
+                        isDirectory:YES];
     NSURL *sourceRoot = [stagingDirectory URLByAppendingPathComponent:@"Source" isDirectory:YES];
     NSURL *resultRoot = [[fileManager.temporaryDirectory URLByAppendingPathComponent:@"LiveContainer-AppStore" isDirectory:YES]
-                         URLByAppendingPathComponent:operationID isDirectory:YES];
+        URLByAppendingPathComponent:operationID
+                        isDirectory:YES];
     NSURL *payloadURL = [sourceRoot URLByAppendingPathComponent:@"Payload" isDirectory:YES];
     NSURL *resultPayloadURL = [resultRoot URLByAppendingPathComponent:@"Payload" isDirectory:YES];
     NSURL *temporaryIPAURL = [outputURL.URLByDeletingLastPathComponent
-                              URLByAppendingPathComponent:[NSString stringWithFormat:@".%@.tmp.ipa", operationID]];
+        URLByAppendingPathComponent:[NSString stringWithFormat:@".%@.tmp.ipa", operationID]];
 
     [fileManager removeItemAtURL:stagingDirectory error:nil];
     [fileManager removeItemAtURL:resultRoot error:nil];
@@ -406,11 +406,13 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
         if (![fileManager createDirectoryAtURL:sourceRoot withIntermediateDirectories:YES attributes:nil error:&fileError] ||
             ![fileManager createDirectoryAtURL:resultPayloadURL withIntermediateDirectories:YES attributes:nil error:&fileError] ||
             ![fileManager createDirectoryAtURL:outputURL.URLByDeletingLastPathComponent
-                   withIntermediateDirectories:YES attributes:nil error:&fileError]) {
+                   withIntermediateDirectories:YES
+                                    attributes:nil
+                                         error:&fileError]) {
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorStaging,
                                              @"Could not create FairPlay work directories.",
-                                             diagnostics, @[stagingRoot.path], fileError);
+                                             diagnostics, @[ stagingRoot.path ], fileError);
             }
             return nil;
         }
@@ -425,7 +427,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorExtraction,
                                              [NSString stringWithFormat:@"Could not extract the IPA: %s", zipError],
-                                             diagnostics, @[stagingRoot.path], nil);
+                                             diagnostics, @[ stagingRoot.path ], nil);
             }
             return nil;
         }
@@ -457,7 +459,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorStaging,
                                              @"Could not create the decrypted app copy.",
-                                             diagnostics, @[stagingRoot.path], fileError);
+                                             diagnostics, @[ stagingRoot.path ], fileError);
             }
             return nil;
         }
@@ -468,7 +470,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorStaging,
                                              @"Could not write iTunesMetadata.plist.",
-                                             diagnostics, @[stagingRoot.path], fileError);
+                                             diagnostics, @[ stagingRoot.path ], fileError);
             }
             return nil;
         }
@@ -478,33 +480,33 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorInvalidIPA,
                                              @"No Mach-O binaries were found in the app bundle.",
-                                             diagnostics, @[stagingRoot.path], nil);
+                                             diagnostics, @[ stagingRoot.path ], nil);
             }
             return nil;
         }
 
         NSUInteger completed = 0;
         for (NSString *relativePath in machOs) @autoreleasepool {
-            if (progress) {
-                progress(@"decrypting", completed, machOs.count);
-            }
-            NSString *sourcePath = [sourceAppURL.path stringByAppendingPathComponent:relativePath];
-            NSString *resultPath = [resultAppURL.path stringByAppendingPathComponent:relativePath];
-            [diagnostics addObject:[NSString stringWithFormat:@"Decrypting %@ from %@", relativePath, stagingRoot.path]];
-            int result = fp_decrypt_file(sourcePath.fileSystemRepresentation,
-                                         resultPath.fileSystemRepresentation,
-                                         LCFairPlayCoreLog,
-                                         (__bridge void *)diagnostics);
-            if (result < 0) {
-                if (error) {
-                    *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
-                                                 [NSString stringWithFormat:@"FairPlay decryption failed for %@.", relativePath],
-                                                 diagnostics, @[stagingRoot.path], nil);
+                if (progress) {
+                    progress(@"decrypting", completed, machOs.count);
                 }
-                return nil;
+                NSString *sourcePath = [sourceAppURL.path stringByAppendingPathComponent:relativePath];
+                NSString *resultPath = [resultAppURL.path stringByAppendingPathComponent:relativePath];
+                [diagnostics addObject:[NSString stringWithFormat:@"Decrypting %@ from %@", relativePath, stagingRoot.path]];
+                int result = fp_decrypt_file(sourcePath.fileSystemRepresentation,
+                                             resultPath.fileSystemRepresentation,
+                                             LCFairPlayCoreLog,
+                                             (__bridge void *)diagnostics);
+                if (result < 0) {
+                    if (error) {
+                        *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
+                                                     [NSString stringWithFormat:@"FairPlay decryption failed for %@.", relativePath],
+                                                     diagnostics, @[ stagingRoot.path ], nil);
+                    }
+                    return nil;
+                }
+                completed += 1;
             }
-            completed += 1;
-        }
 
         if (progress) {
             progress(@"verifying", completed, machOs.count);
@@ -526,7 +528,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorArchive,
                                              [NSString stringWithFormat:@"Could not create the decrypted IPA: %s", zipError],
-                                             diagnostics, @[stagingRoot.path], nil);
+                                             diagnostics, @[ stagingRoot.path ], nil);
             }
             return nil;
         }
@@ -536,7 +538,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorArchive,
                                              @"Could not publish the decrypted IPA.",
-                                             diagnostics, @[stagingRoot.path], fileError);
+                                             diagnostics, @[ stagingRoot.path ], fileError);
             }
             return nil;
         }
@@ -596,7 +598,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
         [diagnostics addObject:[NSString stringWithFormat:@"Trying FairPlay staging root: %@", rootPath]];
 
         NSURL *result = LCFairPlayRunAttempt(ipaURL, rootURL, outputURL, mainSinf, metadataPlist,
-                                              progress, diagnostics, &lastError);
+                                             progress, diagnostics, &lastError);
         if (result) {
             return result;
         }
@@ -629,9 +631,9 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
 }
 
 + (NSURL *)decryptInstalledAppAtURL:(NSURL *)appURL
-                         outputURL:(NSURL *)outputURL
-                          progress:(LCFairPlayProgressHandler)progress
-                             error:(NSError **)error {
+                          outputURL:(NSURL *)outputURL
+                           progress:(LCFairPlayProgressHandler)progress
+                              error:(NSError **)error {
 #if TARGET_OS_SIMULATOR
     if (error) {
         *error = LCFairPlayMakeError(LCFairPlayErrorUnsupportedPlatform,
@@ -647,21 +649,23 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
         if (error) {
             *error = LCFairPlayMakeError(LCFairPlayErrorInvalidIPA,
                                          @"The installed app bundle is missing or unreadable.",
-                                         @[], @[appURL.path ?: @""], nil);
+                                         @[], @[ appURL.path ?: @"" ], nil);
         }
         return nil;
     }
 
     NSMutableArray<NSString *> *diagnostics = [NSMutableArray arrayWithObject:
-        [NSString stringWithFormat:@"Decrypting directly from installed bundle: %@", appURL.path]];
+                                                                  [NSString stringWithFormat:@"Decrypting directly from installed bundle: %@", appURL.path]];
     NSString *operationID = NSUUID.UUID.UUIDString;
     NSURL *resultRoot = [[fileManager.temporaryDirectory
-                          URLByAppendingPathComponent:@"LiveContainer-InstalledApp" isDirectory:YES]
-                         URLByAppendingPathComponent:operationID isDirectory:YES];
+        URLByAppendingPathComponent:@"LiveContainer-InstalledApp"
+                        isDirectory:YES]
+        URLByAppendingPathComponent:operationID
+                        isDirectory:YES];
     NSURL *resultPayloadURL = [resultRoot URLByAppendingPathComponent:@"Payload" isDirectory:YES];
     NSURL *resultAppURL = [resultPayloadURL URLByAppendingPathComponent:appURL.lastPathComponent isDirectory:YES];
     NSURL *temporaryIPAURL = [outputURL.URLByDeletingLastPathComponent
-                              URLByAppendingPathComponent:[NSString stringWithFormat:@".%@.tmp.ipa", operationID]];
+        URLByAppendingPathComponent:[NSString stringWithFormat:@".%@.tmp.ipa", operationID]];
 
     [fileManager removeItemAtURL:resultRoot error:nil];
     [fileManager removeItemAtURL:temporaryIPAURL error:nil];
@@ -679,7 +683,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorStaging,
                                              @"Could not create the installed-app work directories.",
-                                             diagnostics, @[appURL.path], fileError);
+                                             diagnostics, @[ appURL.path ], fileError);
             }
             return nil;
         }
@@ -689,7 +693,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorStaging,
                                              @"Could not copy the installed app bundle.",
-                                             diagnostics, @[appURL.path], fileError);
+                                             diagnostics, @[ appURL.path ], fileError);
             }
             return nil;
         }
@@ -701,31 +705,31 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorInvalidIPA,
                                              @"No Mach-O binaries were found in the installed app bundle.",
-                                             diagnostics, @[appURL.path], nil);
+                                             diagnostics, @[ appURL.path ], nil);
             }
             return nil;
         }
 
         NSUInteger completed = 0;
         for (NSString *relativePath in machOs) @autoreleasepool {
-            if (progress) progress(@"decrypting", completed, machOs.count);
-            NSString *sourcePath = [appURL.path stringByAppendingPathComponent:relativePath];
-            NSString *resultPath = [resultAppURL.path stringByAppendingPathComponent:relativePath];
-            [diagnostics addObject:[NSString stringWithFormat:@"Decrypting installed Mach-O: %@", relativePath]];
-            int decryptResult = fp_decrypt_file(sourcePath.fileSystemRepresentation,
-                                                resultPath.fileSystemRepresentation,
-                                                LCFairPlayCoreLog,
-                                                (__bridge void *)diagnostics);
-            if (decryptResult < 0) {
-                if (error) {
-                    *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
-                                                 [NSString stringWithFormat:@"FairPlay decryption failed for %@.", relativePath],
-                                                 diagnostics, @[appURL.path], nil);
+                if (progress) progress(@"decrypting", completed, machOs.count);
+                NSString *sourcePath = [appURL.path stringByAppendingPathComponent:relativePath];
+                NSString *resultPath = [resultAppURL.path stringByAppendingPathComponent:relativePath];
+                [diagnostics addObject:[NSString stringWithFormat:@"Decrypting installed Mach-O: %@", relativePath]];
+                int decryptResult = fp_decrypt_file(sourcePath.fileSystemRepresentation,
+                                                    resultPath.fileSystemRepresentation,
+                                                    LCFairPlayCoreLog,
+                                                    (__bridge void *)diagnostics);
+                if (decryptResult < 0) {
+                    if (error) {
+                        *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
+                                                     [NSString stringWithFormat:@"FairPlay decryption failed for %@.", relativePath],
+                                                     diagnostics, @[ appURL.path ], nil);
+                    }
+                    return nil;
                 }
-                return nil;
+                completed += 1;
             }
-            completed += 1;
-        }
 
         if (progress) progress(@"verifying", completed, machOs.count);
         if (!LCFairPlayVerifyDecryptedMachOs(resultAppURL, diagnostics, &fileError)) {
@@ -741,7 +745,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorArchive,
                                              [NSString stringWithFormat:@"Could not archive the imported app: %s", zipError],
-                                             diagnostics, @[appURL.path], nil);
+                                             diagnostics, @[ appURL.path ], nil);
             }
             return nil;
         }
@@ -751,7 +755,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
             if (error) {
                 *error = LCFairPlayMakeError(LCFairPlayErrorArchive,
                                              @"Could not publish the imported IPA.",
-                                             diagnostics, @[appURL.path], fileError);
+                                             diagnostics, @[ appURL.path ], fileError);
             }
             return nil;
         }

@@ -9,8 +9,8 @@ import LocalAuthentication
 
 extension LCUtils {
     public static let appGroupUserDefault = UserDefaults.init(suiteName: LCSharedUtils.appGroupID()) ?? UserDefaults.standard
-    
-    public static func signTweaks(tweakFolderUrl: URL, force : Bool = false, recursive: Bool = true, progressHandler : ((Progress) -> Void)? = nil) async throws {
+
+    public static func signTweaks(tweakFolderUrl: URL, force: Bool = false, recursive: Bool = true, progressHandler: ((Progress) -> Void)? = nil) async throws {
         guard LCSharedUtils.certificatePassword() != nil else {
             return
         }
@@ -22,30 +22,30 @@ extension LCUtils {
                 return
             }
         }
-        var isFolder :ObjCBool = false
-        if(fm.fileExists(atPath: tweakFolderUrl.path, isDirectory: &isFolder) && !isFolder.boolValue) {
+        var isFolder: ObjCBool = false
+        if fm.fileExists(atPath: tweakFolderUrl.path, isDirectory: &isFolder) && !isFolder.boolValue {
             return
         }
-        
+
         // check if re-sign is needed
         // if signature is invalid, we need to re-sign. dylib and framework's main binary are supported.
         // TweakLoader loads an app's tweak folder recursively, so subfolders must be signed too;
         // the global tweak root is only loaded top-level (its subfolders are per-app folders).
         var filesToSign: [URL] = []
-        
+
         func collect(_ folderUrl: URL, recurse: Bool) throws {
             let fileURLs = try fm.contentsOfDirectory(at: folderUrl, includingPropertiesForKeys: nil)
             for fileURL in fileURLs {
                 var fileURL = fileURL
                 let attributes = try fm.attributesOfItem(atPath: fileURL.path)
                 let fileType = attributes[.type] as? FileAttributeType
-                if(fileType != FileAttributeType.typeDirectory && fileType != FileAttributeType.typeRegular) {
+                if fileType != FileAttributeType.typeDirectory && fileType != FileAttributeType.typeRegular {
                     continue
                 }
                 let name = fileURL.lastPathComponent
                 let baseName = name.hasSuffix(".disabled") ? String(name.dropLast(".disabled".count)) : name
-                if(fileType == FileAttributeType.typeDirectory) {
-                    if(!baseName.hasSuffix(".framework")) {
+                if fileType == FileAttributeType.typeDirectory {
+                    if !baseName.hasSuffix(".framework") {
                         if recurse && !name.hasSuffix(".disabled") {
                             try collect(fileURL, recurse: true)
                         }
@@ -55,34 +55,34 @@ extension LCUtils {
                         continue
                     }
                     fileURL = executableURL
-                } else if (fileType == FileAttributeType.typeRegular && !baseName.hasSuffix(".dylib")) {
+                } else if fileType == FileAttributeType.typeRegular && !baseName.hasSuffix(".dylib") {
                     continue
                 }
 
                 if !force, checkCodeSignature((fileURL.path as NSString).utf8String) {
-                    continue;
+                    continue
                 }
-                
+
                 filesToSign.append(fileURL)
             }
         }
         try collect(tweakFolderUrl, recurse: recursive)
-        
+
         if filesToSign.isEmpty {
             return
         }
-        
+
         for fileURL in filesToSign {
             LCPatchMachOFixupARM64eSlice((fileURL.path as NSString).fileSystemRepresentation)
         }
-        
+
         try await withUnsafeThrowingContinuation({ c in
             let progress = signFilesWithZSign(with: filesToSign) { success, error in
-                if(success) {
+                if success {
                     c.resume()
                     return
                 }
-                
+
                 guard let error else {
                     c.resume()
                     return
@@ -94,7 +94,7 @@ extension LCUtils {
             }
         })
     }
-        
+
     /// Name of the folder inside a guest app bundle that holds its embedded, team-signed tweaks.
     public static let embeddedTweaksFolderName = "LCTweaks"
 
@@ -161,7 +161,8 @@ extension LCUtils {
             return
         }
         if !force, fm.fileExists(atPath: destRoot.path),
-           let old = try? String(contentsOf: manifestUrl, encoding: .utf8), old == manifest {
+            let old = try? String(contentsOf: manifestUrl, encoding: .utf8), old == manifest
+        {
             return
         }
 
@@ -245,14 +246,14 @@ extension LCUtils {
             }
         }
     }
-    
+
     public static func authenticateUser() async throws -> Bool {
         if DataManager.shared.model.isHiddenAppUnlocked {
             return true
         }
-        
+
         var success = false
-        var error : Error? = nil
+        var error: Error? = nil
         await withUnsafeContinuation { c in
             LCUtils.authenticateUser { success1, error1 in
                 success = success1
@@ -271,7 +272,7 @@ extension LCUtils {
         }
         return true
     }
-    
+
     public static func getStoreName() -> String {
         switch LCUtils.store() {
         case .AltStore:
@@ -284,103 +285,107 @@ extension LCUtils {
             return "Unknown Store"
         }
     }
-    
+
     public static func removeAppKeychain(dataUUID label: String) {
         [kSecClassGenericPassword, kSecClassInternetPassword, kSecClassCertificate, kSecClassKey, kSecClassIdentity].forEach {
-          let status = SecItemDelete([
-            kSecClass as String: $0,
-            "alis": label,
-          ] as CFDictionary)
-          if status != errSecSuccess && status != errSecItemNotFound {
-              //Error while removing class $0
-              NSLog("[LC] Failed to find keychain items: \(status)")
-          }
+            let status = SecItemDelete(
+                [
+                    kSecClass as String: $0,
+                    "alis": label,
+                ] as CFDictionary)
+            if status != errSecSuccess && status != errSecItemNotFound {
+                //Error while removing class $0
+                NSLog("[LC] Failed to find keychain items: \(status)")
+            }
         }
     }
-    
+
     public static func forEachInstalledLC(isFree: Bool, block: (String, inout Bool) -> Void) {
         for scheme in LCSharedUtils.lcUrlSchemes() {
             if scheme == UserDefaults.lcAppUrlScheme() {
                 continue
             }
-            
+
             // Check if the app is installed
             guard let url = URL(string: "\(scheme)://"),
-                  UIApplication.shared.canOpenURL(url) else {
+                UIApplication.shared.canOpenURL(url)
+            else {
                 continue
             }
-            
+
             // Check shared utility logic
             if isFree && LCSharedUtils.isLCScheme(inUse: scheme) {
                 continue
             }
-            
+
             var shouldBreak = false
             block(scheme, &shouldBreak)
-            
+
             if shouldBreak {
                 break
             }
         }
     }
-    
+
     public static func askForJIT(withScript script: String? = nil, appName: String? = nil, classicMode: UInt = 0, onServerMessage: ((String) -> Void)? = nil) async -> Bool {
         // if LiveContainer is installed by TrollStore
         let tsPath = "\(Bundle.main.bundlePath)/../_TrollStore"
-        if (access((tsPath as NSString).utf8String, 0) == 0) {
+        if access((tsPath as NSString).utf8String, 0) == 0 {
             LCSharedUtils.launchToGuestApp(withClassicMode: classicMode)
             return true
         }
-        
+
         guard let groupUserDefaults = UserDefaults(suiteName: LCSharedUtils.appGroupID()),
-              let jitEnabler = JITEnablerType(rawValue: groupUserDefaults.integer(forKey: "LCJITEnablerType")) else {
+            let jitEnabler = JITEnablerType(rawValue: groupUserDefaults.integer(forKey: "LCJITEnablerType"))
+        else {
             return false
         }
-        
-        if(jitEnabler == .SideJITServer){
+
+        if jitEnabler == .SideJITServer {
             guard
-                  let sideJITServerAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress"),
-                  let deviceUDID = groupUserDefaults.string(forKey: "LCDeviceUDID"),
-                  !sideJITServerAddress.isEmpty && !deviceUDID.isEmpty else {
+                let sideJITServerAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress"),
+                let deviceUDID = groupUserDefaults.string(forKey: "LCDeviceUDID"),
+                !sideJITServerAddress.isEmpty && !deviceUDID.isEmpty
+            else {
                 return false
             }
-            
+
             onServerMessage?("Please make sure the VPN is connected if the server is not in your local network.")
-            
+
             do {
                 let launchJITUrlStr = "\(sideJITServerAddress)/\(deviceUDID)/\(Bundle.main.bundleIdentifier ?? "")"
                 guard let launchJITUrl = URL(string: launchJITUrlStr) else { return false }
                 let session = URLSession.shared
-                
+
                 onServerMessage?("Contacting SideJITServer at \(sideJITServerAddress)...")
                 let request = URLRequest(url: launchJITUrl)
                 let (data, _) = try await session.data(for: request)
                 onServerMessage?(String(decoding: data, as: UTF8.self))
-                
+
             } catch {
                 onServerMessage?("Failed to contact SideJITServer: \(error)")
             }
-            
+
             return false
-        } else if (jitEnabler == .JITStreamerEBLegacy) {
+        } else if jitEnabler == .JITStreamerEBLegacy {
             var JITStresmerEBAddress = groupUserDefaults.string(forKey: "LCSideJITServerAddress") ?? ""
             if JITStresmerEBAddress.isEmpty {
                 JITStresmerEBAddress = "http://[fd00::]:9172"
             }
-            
+
             onServerMessage?("Please make sure the VPN is connected if the server is not in your local network.")
-            
+
             do {
-                
+
                 onServerMessage?("Contacting JitStreamer-EB server at \(JITStresmerEBAddress)...")
-                
+
                 let session = URLSession.shared
                 let decoder = JSONDecoder()
-                
+
                 let mountStatusUrlStr = "\(JITStresmerEBAddress)/mount"
                 guard let mountStatusUrl = URL(string: mountStatusUrlStr) else { return false }
                 let mountRequest = URLRequest(url: mountStatusUrl)
-                
+
                 // check mount status
                 onServerMessage?("Checking mount status...")
                 let (mountData, _) = try await session.data(for: mountRequest)
@@ -397,34 +402,36 @@ extension LCUtils {
                     }
                     return false
                 }
-                
+
                 // open safari to use /launch_app api
                 if let mountStatusUrl = URL(string: "\(JITStresmerEBAddress)/launch_app/\(Bundle.main.bundleIdentifier!)") {
                     onServerMessage?("JIT acquisition will continue in the default browser.")
                     await UIApplication.shared.open(mountStatusUrl)
                 }
                 return false
-                
-                
+
+
             } catch {
                 onServerMessage?("Failed to contact JitStreamer-EB server: \(error)")
             }
         } else if jitEnabler == .StosDebug || jitEnabler == .StosDebugLC {
-            guard let appName else { onServerMessage?("Unable to get App Name, Please try again."); return false }
+            guard let appName else {
+                onServerMessage?("Unable to get App Name, Please try again.")
+                return false
+            }
             var launchURLStr = "stosdebug://enableJIT?bundleId=\(Bundle.main.bundleIdentifier!)&appName=\(appName)"
-            
+
             if let script = script, !script.isEmpty {
                 launchURLStr += "&script=\(script)"
             }
-            
+
             if jitEnabler == .StosDebugLC {
                 let encodedStr = Data(launchURLStr.utf8).base64EncodedString()
 
 
                 var appToLaunch: LCAppModel? = nil
                 // find an app that can respond to stikjit://
-                appLoop:
-                for app in DataManager.shared.model.apps {
+                appLoop: for app in DataManager.shared.model.apps {
                     if let schemes = app.appInfo.urlSchemes() {
                         for scheme in schemes {
                             if let scheme = scheme as? String, scheme == "stosdebug" {
@@ -438,15 +445,15 @@ extension LCUtils {
                     onServerMessage?("StosDebug is not installed in LiveContainer.")
                     return false
                 }
-                
+
                 if !appToLaunch.uiIsShared {
                     onServerMessage?("StosDebug is installed in LiveContainer, but is not a shared app. Convert it to a shared app to continue.")
                     return false
                 }
                 // check if stosdebug is already running
                 var freeScheme = LCSharedUtils.getContainerUsingLCScheme(withFolderName: appToLaunch.uiDefaultDataFolder)
-                
-                if(freeScheme == nil) {
+
+                if freeScheme == nil {
                     // if not, try to find a free lc
                     forEachInstalledLC(isFree: true) { scheme, shouldBreak in
                         freeScheme = scheme
@@ -457,35 +464,34 @@ extension LCUtils {
                     onServerMessage?("No free LiveContainer is available. Please either: \n(1)close one, \n(2)install a new one, \n(3)choose another method to enable JIT.")
                     return false
                 }
-                
+
                 let launchURL = URL(string: "\(freeScheme)://open-url?url=\(encodedStr)")!
                 LCUtils.appGroupUserDefault.set(freeScheme, forKey: "LCLaunchExtensionScheme")
                 LCUtils.appGroupUserDefault.set(appToLaunch.appInfo.relativeBundlePath, forKey: "LCLaunchExtensionBundleID")
                 LCUtils.appGroupUserDefault.set(Date.now, forKey: "LCLaunchExtensionLaunchDate")
                 onServerMessage?("JIT acquisition will continue in another LiveContainer.")
-                
+
                 await UIApplication.shared.open(launchURL)
             } else {
                 onServerMessage?("JIT acquisition will continue in StosDebug.")
-                
+
                 await UIApplication.shared.open(URL(string: launchURLStr)!)
             }
-            
+
         } else if jitEnabler == .StikJIT || jitEnabler == .StikJITLC {
             var launchURLStr = "stikjit://enable-jit?bundle-id=\(Bundle.main.bundleIdentifier!)"
 
             if let script = script, !script.isEmpty {
                 launchURLStr += "&script-data=\(script)"
             }
-            let launchURL : URL
+            let launchURL: URL
             if jitEnabler == .StikJITLC {
                 let encodedStr = Data(launchURLStr.utf8).base64EncodedString()
 
 
                 var appToLaunch: LCAppModel? = nil
                 // find an app that can respond to stikjit://
-                appLoop:
-                for app in DataManager.shared.model.apps {
+                appLoop: for app in DataManager.shared.model.apps {
                     if let schemes = app.appInfo.urlSchemes() {
                         for scheme in schemes {
                             if let scheme = scheme as? String, scheme == "stikjit" {
@@ -499,15 +505,15 @@ extension LCUtils {
                     onServerMessage?("StikDebug is not installed in LiveContainer.")
                     return false
                 }
-                
+
                 if !appToLaunch.uiIsShared {
                     onServerMessage?("StikDebug is installed in LiveContainer, but is not a shared app. Convert it to a shared app to continue.")
                     return false
                 }
                 // check if stikdebug is already running
                 var freeScheme = LCSharedUtils.getContainerUsingLCScheme(withFolderName: appToLaunch.uiDefaultDataFolder)
-                
-                if(freeScheme == nil) {
+
+                if freeScheme == nil {
                     // if not, try to find a free lc
                     forEachInstalledLC(isFree: true) { scheme, shouldBreak in
                         freeScheme = scheme
@@ -518,13 +524,13 @@ extension LCUtils {
                     onServerMessage?("No free LiveContainer is available. Please either: \n(1)close one, \n(2)install a new one, \n(3)choose another method to enable JIT.")
                     return false
                 }
-                
+
                 launchURL = URL(string: "\(freeScheme)://open-url?url=\(encodedStr)")!
                 LCUtils.appGroupUserDefault.set(freeScheme, forKey: "LCLaunchExtensionScheme")
                 LCUtils.appGroupUserDefault.set(appToLaunch.appInfo.relativeBundlePath, forKey: "LCLaunchExtensionBundleID")
                 LCUtils.appGroupUserDefault.set(Date.now, forKey: "LCLaunchExtensionLaunchDate")
                 onServerMessage?("JIT acquisition will continue in another LiveContainer.")
-                
+
             } else {
                 launchURL = URL(string: launchURLStr)!
                 onServerMessage?("JIT acquisition will continue in StikDebug.")
@@ -565,7 +571,7 @@ extension LCUtils {
             guard seenSources.insert(source).inserted else {
                 throw BatchMoveError.duplicateSource(source)
             }
-            
+
             guard fileManager.isWritableFile(atPath: source.deletingLastPathComponent().path) else {
                 throw BatchMoveError.sourceParentIsNotWritable(source.deletingLastPathComponent())
             }
@@ -632,10 +638,10 @@ extension LCUtils {
             }
         }
     }
-    
+
     static func openSideStore(delegate: LCAppModelDelegate? = nil, urlStr: String? = nil) {
         let sideStoreApp = LCAppModel(appInfo: BuiltInSideStoreAppInfo.shared, delegate: delegate)
-        
+
         Task {
             try await sideStoreApp.runApp(bundleIdOverride: "builtinSideStore", urlStr: urlStr)
         }

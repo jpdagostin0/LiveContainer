@@ -7,7 +7,7 @@
 #import "utils.h"
 #import "LCSharedUtils.h"
 
-@implementation NSURLSessionConfiguration(LiveContainerHook)
+@implementation NSURLSessionConfiguration (LiveContainerHook)
 - (void)hook_encodeWithCoder:(NSCoder *)coder {
     // Fix background download failing in LiveProcess. We always overwrite sharedContainerIdentifier with ours.
     self.sharedContainerIdentifier = LCSharedUtils.appGroupID;

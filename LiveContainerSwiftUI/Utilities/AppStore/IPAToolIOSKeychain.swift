@@ -20,8 +20,9 @@ final class IPAToolIOSKeychain {
 
     func deviceGUID() throws -> String {
         if let data = try data(for: guidKey),
-           let value = String(data: data, encoding: .utf8),
-           value.count == 12 {
+            let value = String(data: data, encoding: .utf8),
+            value.count == 12
+        {
             return value
         }
 
@@ -79,7 +80,7 @@ final class IPAToolIOSKeychain {
         let attributes: [String: Any] = [
             kSecValueData as String: data,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
-            kSecAttrLabel as String: "LiveContainer App Store"
+            kSecAttrLabel as String: "LiveContainer App Store",
         ]
 
         let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
@@ -102,7 +103,7 @@ final class IPAToolIOSKeychain {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: key
+            kSecAttrAccount as String: key,
         ]
     }
 }

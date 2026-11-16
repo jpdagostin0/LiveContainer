@@ -22,7 +22,7 @@
 
 @end
 
-static NSMutableDictionary<NSString *, UIWindow *> *SSVersionWindows;
+static NSMutableDictionary<NSString*, UIWindow*>* SSVersionWindows;
 static id SSSceneObserver;
 
 @interface PassthroughWindow : UIWindow
@@ -30,14 +30,13 @@ static id SSSceneObserver;
 
 @implementation PassthroughWindow
 
-- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event
-{
+- (UIView*)hitTest:(CGPoint)point withEvent:(UIEvent*)event {
     return nil;
 }
 
 @end
 
-@implementation UNUserNotificationCenter(SideStoreHooks)
+@implementation UNUserNotificationCenter (SideStoreHooks)
 
 - (void)lc_addNotificationRequest:(UNNotificationRequest*)request
             withCompletionHandler:(void (^)(NSError* error))completionHandler {
@@ -64,7 +63,7 @@ static id SSSceneObserver;
 
 @end
 
-@implementation NSBundle(SideStoreHooks)
+@implementation NSBundle (SideStoreHooks)
 
 + (NSString*)hook_appbundleIdentifier {
     return @"com.kdt.livecontainer";
@@ -84,11 +83,11 @@ static id SSSceneObserver;
 
 + (NSBundle*)hook_activeBundle {
     if (!NSUserDefaults.isLiveProcess) return NSUserDefaults.lcMainBundle;
-    
+
     static NSBundle* lcAppBundle = nil;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        lcAppBundle = [NSBundle bundleWithURL: NSUserDefaults.lcMainBundle.bundleURL.URLByDeletingLastPathComponent.URLByDeletingLastPathComponent];
+        lcAppBundle = [NSBundle bundleWithURL:NSUserDefaults.lcMainBundle.bundleURL.URLByDeletingLastPathComponent.URLByDeletingLastPathComponent];
     });
     return lcAppBundle;
 }
@@ -107,15 +106,15 @@ NSURL* SideStoreSource_hook_altStoreSourceURL(id self, SEL cmd) {
 #pragma clang diagnostic ignored "-Wundeclared-selector"
 void (*SideStoreMyAppsViewController_orig_viewDidload)(UICollectionViewController* self, SEL cmd) = nil;
 void SideStoreMyAppsViewController_hook_viewDidload(UICollectionViewController* self, SEL cmd) {
-    if(!SideStoreMyAppsViewController_orig_viewDidload) return;
+    if (!SideStoreMyAppsViewController_orig_viewDidload) return;
     SideStoreMyAppsViewController_orig_viewDidload(self, cmd);
-    
-    UIImage *escapeImage = [UIImage systemImageNamed:@"escape"];
-    UIBarButtonItem *escapeItem = [[UIBarButtonItem alloc] initWithImage:escapeImage
+
+    UIImage* escapeImage = [UIImage systemImageNamed:@"escape"];
+    UIBarButtonItem* escapeItem = [[UIBarButtonItem alloc] initWithImage:escapeImage
                                                                    style:UIBarButtonItemStylePlain
                                                                   target:self
                                                                   action:@selector(escapeButtonTapped:)];
-        
+
     NSMutableArray* oldToolBarItems = [self.navigationItem.leftBarButtonItems mutableCopy];
     [oldToolBarItems addObject:escapeItem];
     self.navigationItem.leftBarButtonItems = oldToolBarItems;
@@ -126,24 +125,20 @@ void SideStoreMyAppsViewController_hook_escapeButtonTapped(UICollectionViewContr
 }
 
 
-
-
-
-static void SSInstallVersionWindow(UIWindowScene *windowScene)
-{
-    NSString *identifier = windowScene.session.persistentIdentifier;
+static void SSInstallVersionWindow(UIWindowScene* windowScene) {
+    NSString* identifier = windowScene.session.persistentIdentifier;
     if (identifier.length == 0 || SSVersionWindows[identifier] != nil) {
         return;
     }
-    
-    
+
+
     NSString* LCVersion = [NSString stringWithFormat:@"%@-%@",
-                         NSUserDefaults.lcMainBundle.infoDictionary[@"CFBundleShortVersionString"],
-                         NSUserDefaults.lcMainBundle.infoDictionary[@"LCVersionInfo"]];
-    
+                                                     NSUserDefaults.lcMainBundle.infoDictionary[@"CFBundleShortVersionString"],
+                                                     NSUserDefaults.lcMainBundle.infoDictionary[@"LCVersionInfo"]];
+
     NSString* SSVersion = [NSBundle.mainBundle objectForInfoDictionaryKey:@"CFBundleShortVersionString"];
-    
-    NSString *osVersion = [[UIDevice currentDevice] systemVersion];
+
+    NSString* osVersion = [[UIDevice currentDevice] systemVersion];
     size_t size = 32;
     char iosBuild[32];
     sysctlbyname("kern.osversion", iosBuild, &size, NULL, 0);
@@ -159,26 +154,26 @@ static void SSInstallVersionWindow(UIWindowScene *windowScene)
     versionLabel.text = allVersionString;
     versionLabel.numberOfLines = 0;
     versionLabel.lineBreakMode = NSLineBreakByWordWrapping;
-    
-    UIViewController *rootController = [[UIViewController alloc] init];
+
+    UIViewController* rootController = [[UIViewController alloc] init];
     rootController.view.backgroundColor = UIColor.clearColor;
     [rootController.view addSubview:versionLabel];
-    
-    if(windowScene.keyWindow.safeAreaInsets.bottom == 0) {
+
+    if (windowScene.keyWindow.safeAreaInsets.bottom == 0) {
         // old devices with no bottom safe area
         [NSLayoutConstraint activateConstraints:@[
             [versionLabel.centerXAnchor constraintEqualToAnchor:rootController.view.centerXAnchor],
-            [versionLabel.topAnchor constraintEqualToAnchor: rootController.view.safeAreaLayoutGuide.topAnchor]
+            [versionLabel.topAnchor constraintEqualToAnchor:rootController.view.safeAreaLayoutGuide.topAnchor]
         ]];
     } else {
         // new devices
         [NSLayoutConstraint activateConstraints:@[
             [versionLabel.centerXAnchor constraintEqualToAnchor:rootController.view.centerXAnchor],
-            [versionLabel.bottomAnchor constraintEqualToAnchor: rootController.view.safeAreaLayoutGuide.bottomAnchor
-                                                      constant: isPhone ? 22 : 0]
+            [versionLabel.bottomAnchor constraintEqualToAnchor:rootController.view.safeAreaLayoutGuide.bottomAnchor
+                                                      constant:isPhone ? 22 : 0]
         ]];
     }
-    PassthroughWindow *window = [[PassthroughWindow alloc] initWithWindowScene:windowScene];
+    PassthroughWindow* window = [[PassthroughWindow alloc] initWithWindowScene:windowScene];
 
     window.rootViewController = rootController;
     window.backgroundColor = UIColor.clearColor;
@@ -198,38 +193,33 @@ void installSideStoreHooks(void) {
     swizzle(NSBundle.class, @selector(altstoreAppGroup), @selector(hook_altstoreAppGroup));
     swizzleClassMethod(NSBundle.class, @selector(activeBundle), @selector(hook_activeBundle));
     swizzleClassMethod(NSBundle.class, @selector(baseAltStoreAppGroupID), @selector(hook_baseAltStoreAppGroupID));
-    
+
     // replace altStoreSourceURL
     Method altStoreSourceURLMethod = class_getClassMethod(PrivClass(Source), @selector(altStoreSourceURL));
     method_setImplementation(altStoreSourceURLMethod, (IMP)SideStoreSource_hook_altStoreSourceURL);
-    
+
     if (!NSUserDefaults.isLiveProcess) {
         // add escape button
         Method viewDidLoadMethod = class_getInstanceMethod(PrivClass(MyAppsViewController), @selector(viewDidLoad));
-        SideStoreMyAppsViewController_orig_viewDidload = (void (*)(UICollectionViewController *, SEL))method_getImplementation(viewDidLoadMethod);
+        SideStoreMyAppsViewController_orig_viewDidload = (void (*)(UICollectionViewController*, SEL))method_getImplementation(viewDidLoadMethod);
         method_setImplementation(viewDidLoadMethod, (IMP)SideStoreMyAppsViewController_hook_viewDidload);
         class_addMethod(PrivClass(MyAppsViewController), @selector(escapeButtonTapped:), (IMP)SideStoreMyAppsViewController_hook_escapeButtonTapped, "v@:@");
-        
+
         // add version number
         SSVersionWindows = [NSMutableDictionary dictionary];
 
         SSSceneObserver =
-        [NSNotificationCenter.defaultCenter addObserverForName:UISceneDidActivateNotification
-                                                        object:nil
-                                                         queue:NSOperationQueue.mainQueue
-                                                    usingBlock:^(NSNotification *notification) {
-            UIScene *scene = notification.object;
-            
-            if ([scene isKindOfClass:UIWindowScene.class]) {
-                SSInstallVersionWindow((UIWindowScene *)scene);
-            }
-        }];
-        
-        
-        
-    }
-    
+            [NSNotificationCenter.defaultCenter addObserverForName:UISceneDidActivateNotification
+                                                            object:nil
+                                                             queue:NSOperationQueue.mainQueue
+                                                        usingBlock:^(NSNotification* notification) {
+                                                            UIScene* scene = notification.object;
 
+                                                            if ([scene isKindOfClass:UIWindowScene.class]) {
+                                                                SSInstallVersionWindow((UIWindowScene*)scene);
+                                                            }
+                                                        }];
+    }
 }
 #pragma clang diagnostic pop
 

@@ -287,7 +287,7 @@ private struct LCAppStorageSummaryHeaderView: View {
 
     @ScaledMetric(relativeTo: .title) private var iconSize: CGFloat = 58
     @AppStorage("darkModeIcon", store: LCUtils.appGroupUserDefault) var darkModeIcon = false
-    
+
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             IconImageView(icon: appItem.appModel.appInfo.iconIsDarkIcon(darkModeIcon))

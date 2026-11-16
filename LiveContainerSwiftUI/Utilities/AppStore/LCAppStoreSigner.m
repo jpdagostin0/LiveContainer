@@ -15,11 +15,11 @@
 // for the real ones in-process. Names mirror internal/store/emulator/*.go.
 static NSArray<NSString *> *LCAMSExpectedClasses(void) {
     return @[
-        @"AMSAnisette",            // Store AMD / anisette machine proof
-        @"AMSURLRequest",          // signed Store request object
-        @"AMSURLRequestEncoder",   // builds + signs authenticate/download requests
-        @"AMSBagNetworkDataSource",// fetches the Store bag (endpoints + SAP config)
-        @"AMSVerifyCredentialsTask",// authenticate request builder
+        @"AMSAnisette", // Store AMD / anisette machine proof
+        @"AMSURLRequest", // signed Store request object
+        @"AMSURLRequestEncoder", // builds + signs authenticate/download requests
+        @"AMSBagNetworkDataSource", // fetches the Store bag (endpoints + SAP config)
+        @"AMSVerifyCredentialsTask", // authenticate request builder
     ];
 }
 
@@ -60,7 +60,7 @@ static NSDictionary *LCAMSCopyStoreAMDHeaders(Class anisetteClass,
 
     @try {
         NSURLRequest *request = [NSURLRequest requestWithURL:
-            [NSURL URLWithString:@"https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate"]];
+                                                  [NSURL URLWithString:@"https://buy.itunes.apple.com/WebObjects/MZFinance.woa/wa/authenticate"]];
         id account = nil;
         NSInteger type = 2;
 
@@ -95,9 +95,9 @@ static NSDictionary *LCAMSCopyStoreAMDHeaders(Class anisetteClass,
 // the Go ipatool emulator.
 static NSArray<NSString *> *LCFairPlayServiceNames(void) {
     return @[
-        @"IOMobileAppleHardwareDecryption",  // classic iOS FairPlay IOKit service
-        @"FairPlayIOKit",                    // kext class name in Go ipatool assets
-        @"AppleFairPlay",                    // alternative seen in some builds
+        @"IOMobileAppleHardwareDecryption", // classic iOS FairPlay IOKit service
+        @"FairPlayIOKit", // kext class name in Go ipatool assets
+        @"AppleFairPlay", // alternative seen in some builds
     ];
 }
 
@@ -193,7 +193,8 @@ static NSArray<NSString *> *LCFairPlayServiceNames(void) {
         result.fairPlayIOKitOpenResult = (int)kr;
         if (kr == KERN_SUCCESS) {
             LCAMSLog(diagnostics, @"FairPlay IOKit: IOServiceOpen succeeded (connection 0x%x) — "
-                     "IOKit path is available without a system entitlement.", connection);
+                                   "IOKit path is available without a system entitlement.",
+                     connection);
             IOServiceClose(connection);
         } else {
             LCAMSLog(diagnostics, @"FairPlay IOKit: IOServiceOpen returned 0x%x.", (unsigned)kr);

@@ -7,10 +7,10 @@
 
 import SwiftUI
 
-struct LCHelpView : View {
-    @Binding var isPresent : Bool
+struct LCHelpView: View {
+    @Binding var isPresent: Bool
     @State var helpURL = URL(string: "https://livecontainer.github.io/docs/faq")!
-    
+
     var body: some View {
         SafariView(url: $helpURL)
     }

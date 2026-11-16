@@ -12,7 +12,7 @@ static LiveProcessSideStoreHandler* sharedHandler = nil;
 @implementation LiveProcessSideStoreHandler
 
 + (LiveProcessSideStoreHandler*)shared {
-    if(!sharedHandler) {
+    if (!sharedHandler) {
         sharedHandler = [LiveProcessSideStoreHandler new];
     }
     return sharedHandler;

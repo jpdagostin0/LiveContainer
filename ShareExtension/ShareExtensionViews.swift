@@ -47,10 +47,13 @@ struct ShareExtensionRootView: View {
                     }
                 }
             }
-            .alert("lc.common.error".loc, isPresented: Binding(
-                get: { viewModel.errorMessage != nil },
-                set: { if !$0 { viewModel.errorMessage = nil } }
-            )) {
+            .alert(
+                "lc.common.error".loc,
+                isPresented: Binding(
+                    get: { viewModel.errorMessage != nil },
+                    set: { if !$0 { viewModel.errorMessage = nil } }
+                )
+            ) {
                 Button("lc.common.ok".loc) { viewModel.errorMessage = nil }
             } message: {
                 Text(viewModel.errorMessage ?? "")
