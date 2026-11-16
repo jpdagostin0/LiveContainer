@@ -20,6 +20,14 @@ __attribute__((swift_attr("@Sendable")))
 
 @protocol RefreshClient
 - (void)refreshAllAppsWithIdentifier:(NSString*)identifier mangledTypeName:(NSString *)mangledTypeName;
+// Headless certificate provisioning: runs SideStore's sign-in + cert pipeline
+// in the guest using the supplied credentials and machine-anisette snapshot
+// (keys per LCProvisioningBridge), replying with the signing certificate.
+- (void)provisionCertificateWithAppleID:(NSString*)appleID
+                               password:(NSString*)password
+                                   code:(NSString* _Nullable)code
+                               anisette:(NSDictionary<NSString*,NSString*>*)anisette
+                                  reply:(void (^)(NSData* _Nullable certificate, NSString* _Nullable password, NSString* _Nullable error))reply;
 @end
 
 @interface LiveProcessSideStoreHandler : NSObject
@@ -31,6 +39,10 @@ __attribute__((swift_attr("@Sendable")))
 
 NSXPCListener* startAnonymousListener(NSObject<RefreshServer>* reporter);
 NSData* bookmarkForURL(NSURL* url);
+// RefreshClient interface with the provisioning anisette-dictionary argument
+// classes whitelisted for NSXPC. Used for both the guest's exportedInterface
+// and the host's remoteObjectInterface.
+NSXPCInterface* RefreshClientInterface(void);
 
 void installSideStoreHooks(void);
 void installSideStoreNotificationHooks(void);

@@ -20,6 +20,8 @@ final class LCAppStoreViewModel: ObservableObject {
     @Published var isSigningIn = false
     @Published var isBusy = false
     @Published var needsTwoFactor = false
+    @Published var isProvisioningCertificate = false
+    @Published var certificateProvisioned = false
     @Published var statusText = ""
     @Published var progress = 0.0
     @Published var errorMessage: String?
@@ -63,12 +65,18 @@ final class LCAppStoreViewModel: ObservableObject {
         defer { isSigningIn = false }
         do {
             let code = verificationCode.isEmpty ? nil : verificationCode
+            let signInEmail = email
+            let signInPassword = password
             account = try await service.authenticate(email: email,
                                                      password: password,
                                                      code: code)
             needsTwoFactor = false
             verificationCode = ""
             password = ""
+            // Provisioning the zsign signing certificate via the built-in
+            // SideStore reuses this same Apple ID + machine identity. Best
+            // effort: a failure here does not fail the store sign-in.
+            await provisionSigningCertificate(email: signInEmail, password: signInPassword, code: code)
             return true
         } catch IPAToolIOSError.twoFactorRequired {
             needsTwoFactor = true
@@ -77,6 +85,48 @@ final class LCAppStoreViewModel: ObservableObject {
         } catch {
             errorMessage = error.localizedDescription
             return false
+        }
+    }
+
+    /// Runs the built-in SideStore's headless certificate provisioning (resolved
+    /// at runtime so the build still links when SideStore support is disabled),
+    /// and stores the resulting PKCS#12 as LiveContainer's zsign certificate.
+    func provisionSigningCertificate(email: String, password: String, code: String?) async {
+        guard let provisionerClass = NSClassFromString("LCCertificateProvisioner") as? NSObject.Type,
+              let provisioner = provisionerClass.init() as? LCCertificateProvisioning else {
+            errorMessage = "Certificate provisioning requires the built-in SideStore (INCLUDE_SIDESTORE)."
+            return
+        }
+
+        let anisette: [String: String]
+        do {
+            anisette = try await service.machineAnisette()
+        } catch {
+            errorMessage = "Couldn't read anisette for certificate provisioning: \(error.localizedDescription)"
+            return
+        }
+
+        isProvisioningCertificate = true
+        statusText = "Provisioning signing certificate…"
+        defer {
+            isProvisioningCertificate = false
+            statusText = ""
+        }
+
+        let (certificate, certPassword, provisionError): (Data?, String?, String?) = await withCheckedContinuation { continuation in
+            provisioner.provisionCertificate(withEmail: email, password: password, code: code, anisette: anisette) { cert, pwd, err in
+                continuation.resume(returning: (cert, pwd, err))
+            }
+        }
+
+        if let certificate, let certPassword {
+            LCUtils.appGroupUserDefault.set(certificate, forKey: "LCCertificateData")
+            LCUtils.appGroupUserDefault.set(certPassword, forKey: "LCCertificatePassword")
+            LCUtils.appGroupUserDefault.set(NSDate.now, forKey: "LCCertificateUpdateDate")
+            UserDefaults.standard.set(LCSharedUtils.appGroupID(), forKey: "LCAppGroupID")
+            certificateProvisioned = true
+        } else {
+            errorMessage = provisionError ?? "Certificate provisioning failed."
         }
     }
 

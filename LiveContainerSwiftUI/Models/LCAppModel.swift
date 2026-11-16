@@ -446,25 +446,17 @@ class LCAppModel: ObservableObject, Hashable {
             }
         }
         
-        // sign its tweak
-        guard let tweakFolder = appInfo.tweakFolder else {
-            return
+        // Copy this app's tweaks (global + its tweak folder) into the guest bundle and
+        // team-sign the copies there; TweakLoader loads them from the bundle.
+        let globalTweakUrl = appInfo.isShared ? LCPath.lcGroupTweakPath : LCPath.tweakPath
+        var appTweakUrl : URL? = nil
+        if let tweakFolder = appInfo.tweakFolder, !tweakFolder.isEmpty {
+            appTweakUrl = globalTweakUrl.appendingPathComponent(tweakFolder)
         }
-        
-        let tweakFolderUrl : URL
-        if(appInfo.isShared) {
-            tweakFolderUrl = LCPath.lcGroupTweakPath.appendingPathComponent(tweakFolder)
-        } else {
-            tweakFolderUrl = LCPath.tweakPath.appendingPathComponent(tweakFolder)
-        }
-        try await LCUtils.signTweaks(tweakFolderUrl: tweakFolderUrl, force: force) { p in
-            Task{ await MainActor.run {
-                self.isSigningInProgress = true
-            }}
-        }
-        
-        // sign global tweak
-        try await LCUtils.signTweaks(tweakFolderUrl: LCPath.tweakPath, force: force) { p in
+        try await LCUtils.embedTweaks(intoBundle: URL(fileURLWithPath: appInfo.bundlePath()),
+                                      globalTweakFolder: globalTweakUrl,
+                                      appTweakFolder: appInfo.dontInjectTweakLoader && appInfo.dontLoadTweakLoader ? nil : appTweakUrl,
+                                      force: force) { p in
             Task{ await MainActor.run {
                 self.isSigningInProgress = true
             }}

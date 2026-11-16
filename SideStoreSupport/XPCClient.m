@@ -17,6 +17,17 @@
 
 @end
 
+// Forward declaration of SideStore's LCProvisioningBridge (@objc), resolved at
+// runtime from the SideStore binary. Declared on NSObject so we can message it
+// without a compile-time dependency on the SideStore module.
+@interface NSObject (LCProvisioningBridge)
+- (void)provisionCertificateWithAppleID:(NSString*)appleID
+                               password:(NSString*)password
+                                   code:(NSString* _Nullable)code
+                               anisette:(NSDictionary<NSString*,NSString*>*)anisette
+                             completion:(void (^)(NSData* _Nullable certificate, NSString* _Nullable password, NSString* _Nullable error))completion;
+@end
+
 static LiveProcessSideStoreHandler* handler = nil;
 void installSideStoreHooks(void);
 
@@ -41,7 +52,7 @@ void installSideStoreHooks(void);
     
     handler = [PrivClass(LiveProcessSideStoreHandler) shared];
     installSideStoreNotificationHooks();
-    handler.connection.exportedInterface = [NSXPCInterface interfaceWithProtocol:@protocol(RefreshClient)];
+    handler.connection.exportedInterface = RefreshClientInterface();
     handler.connection.exportedObject = SideStoreClient.shared;
 
     [[NSNotificationCenter defaultCenter] addObserver:self
@@ -65,6 +76,32 @@ void installSideStoreHooks(void);
         return;
     }
     [self performRefreshForRealWithIdentifier:identifier mangledTypeName:mangledTypeName server:handler.server];
+}
+
+- (void)provisionCertificateWithAppleID:(NSString*)appleID
+                               password:(NSString*)password
+                                   code:(NSString*)code
+                               anisette:(NSDictionary<NSString*,NSString*>*)anisette
+                                  reply:(void (^)(NSData* _Nullable, NSString* _Nullable, NSString* _Nullable))reply {
+    Class bridgeClass = PrivClass(LCProvisioningBridge);
+    if(!bridgeClass) {
+        reply(nil, nil, @"This SideStore build does not support LiveContainer certificate provisioning. Rebuild SideStore with LCProvisioningBridge.");
+        return;
+    }
+    id bridge = [bridgeClass performSelector:@selector(shared)];
+    if(!bridge) {
+        reply(nil, nil, @"LCProvisioningBridge is unavailable.");
+        return;
+    }
+    // The reply block must be invoked exactly once; the bridge calls completion
+    // once on success or failure.
+    [bridge provisionCertificateWithAppleID:appleID
+                                   password:password
+                                       code:code
+                                   anisette:anisette
+                                 completion:^(NSData* certificate, NSString* certPassword, NSString* error) {
+        reply(certificate, certPassword, error);
+    }];
 }
 
 @end

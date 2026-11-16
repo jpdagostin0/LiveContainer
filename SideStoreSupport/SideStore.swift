@@ -69,6 +69,7 @@ public struct RefreshAllAppsIntent: AppIntent, CustomIntentMigratedAppIntent, Pr
 
 class RefreshHandler: NSObject, RefreshServer {
     var c: UnsafeContinuation<(), any Error>? = nil
+    var provisionC: CheckedContinuation<(Data, String), any Error>? = nil
     var launchContinuation: UnsafeContinuation<(), any Error>? = nil
     var progress: Progress? = nil
     var listener: NSXPCListener? = nil
@@ -88,21 +89,40 @@ class RefreshHandler: NSObject, RefreshServer {
             throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Another refresh task is in progress."])
         }
         
+        try await ensureSideStoreLaunched()
+        self.client?.refreshAllApps(withIdentifier: identifier, mangledTypeName: mangledName)
+        
+        try await withUnsafeThrowingContinuation { c in
+            self.c = c
+        }
+        
+    }
+
+    /// Ensures the built-in SideStore LiveProcess is running and the XPC client
+    /// is connected, launching it if necessary. Shared by refresh and headless
+    /// certificate provisioning.
+    func ensureSideStoreLaunched() async throws {
         if listener == nil {
             guard let listener = startAnonymousListener(self) else {
-                return
+                throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to start SideStore XPC listener."])
             }
             self.listener = listener
         }
         guard let listener = self.listener else {
-            return
+            throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "SideStore XPC listener unavailable."])
         }
 
         // launch SideStore if it's not running
         if (sideStorePid <= 0 || getpgid(sideStorePid) <= 0) && launchContinuation == nil {
             let lcHome = String(cString:getenv("LC_HOME_PATH"))
             let sideStoreHomeURL = URL(fileURLWithPath: lcHome).appendingPathComponent("Documents/SideStore")
-            let bookmarkData = bookmarkForURL(sideStoreHomeURL)!
+            // The home container may not exist yet (e.g. provisioning right after
+            // first sign-in, before SideStore has ever launched). Create it so the
+            // security-scoped bookmark can be formed instead of force-unwrapping nil.
+            try? FileManager.default.createDirectory(at: sideStoreHomeURL, withIntermediateDirectories: true)
+            guard let bookmarkData = bookmarkForURL(sideStoreHomeURL) else {
+                throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Couldn't access the built-in SideStore container. Make sure LiveContainer was installed with the built-in SideStore."])
+            }
 
             // start LiveProcess
             let extensionItem = NSExtensionItem()
@@ -127,13 +147,16 @@ class RefreshHandler: NSObject, RefreshServer {
                 throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to start extension \(error). To use the Refresh All Apps shortcut, reinstall LiveContainer+SideStore with LiveProcess installed. If you use SideStore, choose \"Keep App Extensions (Use Main Profile)\". If you use Impactor, choose \"Only Register Main Bundle\". For other sideloaders, select keep all extensions, i.e. DO NOT Remove any extension."])
             }
             guard let ext else {
-                return
+                throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to start SideStore extension."])
             }
             self.ext = ext
             
             ext.setRequestInterruptionBlock { uuid in
-                self.c?.resume(throwing: NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Built-in SideStore quit unexpectedly"]))
+                let quitError = NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Built-in SideStore quit unexpectedly"])
+                self.c?.resume(throwing: quitError)
                 self.c = nil
+                self.provisionC?.resume(throwing: quitError)
+                self.provisionC = nil
                 self.sideStorePid = 0
                 self.launchContinuation = nil
             }
@@ -152,12 +175,34 @@ class RefreshHandler: NSObject, RefreshServer {
                 }
             }
         }
-        self.client?.refreshAllApps(withIdentifier: identifier, mangledTypeName: mangledName)
-        
-        try await withUnsafeThrowingContinuation { c in
-            self.c = c
+    }
+
+    /// Runs SideStore's sign-in + certificate provisioning headlessly in the
+    /// built-in SideStore, feeding it the given credentials and the machine
+    /// anisette snapshot produced by LiveContainer's App Store login stack.
+    /// Returns the signing certificate (PKCS#12) and its password.
+    func startProvision(appleID: String, password: String, code: String?, anisette: [String: String]) async throws -> (Data, String) {
+        if provisionC != nil {
+            throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "Another certificate provisioning task is in progress."])
         }
-        
+        try await ensureSideStoreLaunched()
+        guard let client = self.client else {
+            throw NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "SideStore client is unavailable."])
+        }
+        return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(Data, String), any Error>) in
+            self.provisionC = cont
+            client.provisionCertificate(withAppleID: appleID, password: password, code: code, anisette: anisette) { certificate, certPassword, error in
+                guard let cont = self.provisionC else { return }
+                self.provisionC = nil
+                if let error {
+                    cont.resume(throwing: NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: error]))
+                } else if let certificate {
+                    cont.resume(returning: (certificate, certPassword ?? ""))
+                } else {
+                    cont.resume(throwing: NSError(domain: "SideStore", code: 1, userInfo: [NSLocalizedDescriptionKey: "SideStore returned no certificate."]))
+                }
+            }
+        }
     }
     
     func updateProgress(_ value: Double) {
@@ -175,7 +220,7 @@ class RefreshHandler: NSObject, RefreshServer {
     }
     
     func onConnection(_ connection: NSXPCConnection!) {
-        connection.remoteObjectInterface = NSXPCInterface(with: RefreshClient.self)
+        connection.remoteObjectInterface = RefreshClientInterface()
         client = connection.remoteObjectProxy as? RefreshClient
     }
     

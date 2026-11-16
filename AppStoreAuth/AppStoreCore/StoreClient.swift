@@ -89,6 +89,29 @@ public final class AppStoreClient: @unchecked Sendable {
         let ids = metadata["softwareVersionExternalIdentifiers"] as? [Int] ?? []
         return ids.map(String.init)
     }
+
+    /// A machine-anisette snapshot taken from the same CoreADI identity used for
+    /// App Store login, keyed for `LCProvisioningBridge` (SideStore). Lets the
+    /// built-in SideStore provision a signing certificate against the exact
+    /// machine identity Apple already saw during this login, instead of a second
+    /// one. Must be called after a successful login (the identity is prepared).
+    public static func machineAnisetteSnapshot() async throws -> [String: String] {
+        let headers = try await StoreAnisette.shared.identityHeaders()
+        func value(_ key: String) -> String { headers[key] ?? "" }
+        return [
+            "machineID": value("X-Apple-I-MD-M"),
+            "oneTimePassword": value("X-Apple-I-MD"),
+            "localUserID": value("X-Apple-I-MD-LU"),
+            "routingInfo": value("X-Apple-I-MD-RINFO"),
+            "deviceID": value("X-Mme-Device-Id"),
+            "serialNumber": value("X-Apple-I-SRL-NO"),
+            "clientInfo": value("X-Mme-Client-Info"),
+            "userAgent": "Xcode",
+            "clientTime": value("X-Apple-I-Client-Time"),
+            "locale": value("X-Apple-Locale"),
+            "timeZone": value("X-Apple-I-TimeZone"),
+        ]
+    }
 }
 
 // MARK: - Wire constants / models

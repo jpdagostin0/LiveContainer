@@ -418,6 +418,8 @@ static NSString* invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         tweakFolder = [docPath stringByAppendingPathComponent:@"Tweaks"];
     }
     setenv("LC_GLOBAL_TWEAKS_FOLDER", tweakFolder.UTF8String, 1);
+    // Team-signed copies of this app's tweaks, embedded by LCUtils.embedTweaks before launch.
+    setenv("LC_EMBEDDED_TWEAKS_FOLDER", [bundlePath stringByAppendingPathComponent:@"LCTweaks"].UTF8String, 1);
 
     // Update TweakLoader symlink
     NSString *tweakLoaderPath = [tweakFolder stringByAppendingPathComponent:@"TweakLoader.dylib"];
@@ -921,9 +923,10 @@ int LiveContainerMain(int argc, char *argv[]) {
     void *LiveContainerSwiftUIHandle = dlopen("@executable_path/Frameworks/LiveContainerSwiftUI.framework/LiveContainerSwiftUI", RTLD_LAZY);
     NSCAssert(LiveContainerSwiftUIHandle, @"%s", dlerror());
     
-    if(sideStoreExist) {
-        void* sideStoreHandle = dlopen("@executable_path/Frameworks/SideStoreSupport.framework/SideStoreSupport", RTLD_LAZY);
-    }
+    // Always load SideStoreSupport so its host-side entry points (e.g. the
+    // certificate provisioner used by App Store sign-in) are registered, even
+    // before a SideStore/AltStore container exists in the app group.
+    dlopen("@executable_path/Frameworks/SideStoreSupport.framework/SideStoreSupport", RTLD_LAZY);
 
     if ([lcUserDefaults boolForKey:@"LCLoadTweaksToSelf"]) {
         NSString *tweakFolder = nil;

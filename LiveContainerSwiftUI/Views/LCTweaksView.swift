@@ -333,7 +333,7 @@ struct LCTweakFolderView : View {
                 isTweakSigning = false
             }
             
-            try await LCUtils.signTweaks(tweakFolderUrl: self.baseUrl, force: true) { p in
+            try await LCUtils.signTweaks(tweakFolderUrl: self.baseUrl, force: true, recursive: !isRoot) { p in
                 isTweakSigning = true
             }
 

@@ -39,3 +39,14 @@ NSXPCListener* startAnonymousListener(NSObject<RefreshServer>* reporter) {
 NSData* bookmarkForURL(NSURL* url) {
     return [url bookmarkDataWithOptions:(1<<11) includingResourceValuesForKeys:0 relativeToURL:0 error:0];
 }
+
+NSXPCInterface* RefreshClientInterface(void) {
+    NSXPCInterface* interface = [NSXPCInterface interfaceWithProtocol:@protocol(RefreshClient)];
+    // anisette (NSDictionary<NSString*,NSString*>) is argument index 3 of
+    // provisionCertificateWithAppleID:password:code:anisette:reply:.
+    [interface setClasses:[NSSet setWithObjects:NSDictionary.class, NSString.class, nil]
+              forSelector:@selector(provisionCertificateWithAppleID:password:code:anisette:reply:)
+            argumentIndex:3
+                  ofReply:NO];
+    return interface;
+}

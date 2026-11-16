@@ -10,7 +10,7 @@ import LocalAuthentication
 extension LCUtils {
     public static let appGroupUserDefault = UserDefaults.init(suiteName: LCSharedUtils.appGroupID()) ?? UserDefaults.standard
     
-    public static func signTweaks(tweakFolderUrl: URL, force : Bool = false, progressHandler : ((Progress) -> Void)? = nil) async throws {
+    public static func signTweaks(tweakFolderUrl: URL, force : Bool = false, recursive: Bool = true, progressHandler : ((Progress) -> Void)? = nil) async throws {
         guard LCSharedUtils.certificatePassword() != nil else {
             return
         }
@@ -28,45 +28,52 @@ extension LCUtils {
         }
         
         // check if re-sign is needed
-        // if signature is invalid, we need to re-sign. dylib and framework's main binary are supported
-        let fileURLs = try fm.contentsOfDirectory(at: tweakFolderUrl, includingPropertiesForKeys: nil)
-
+        // if signature is invalid, we need to re-sign. dylib and framework's main binary are supported.
+        // TweakLoader loads an app's tweak folder recursively, so subfolders must be signed too;
+        // the global tweak root is only loaded top-level (its subfolders are per-app folders).
         var filesToSign: [URL] = []
         
-        for fileURL in fileURLs {
-            var fileURL = fileURL
-            let attributes = try fm.attributesOfItem(atPath: fileURL.path)
-            let fileType = attributes[.type] as? FileAttributeType
-            if(fileType != FileAttributeType.typeDirectory && fileType != FileAttributeType.typeRegular) {
-                continue
-            }
-            let name = fileURL.lastPathComponent
-            let baseName = name.hasSuffix(".disabled") ? String(name.dropLast(".disabled".count)) : name
-            if(fileType == FileAttributeType.typeDirectory) {
-                if(!baseName.hasSuffix(".framework")) {
+        func collect(_ folderUrl: URL, recurse: Bool) throws {
+            let fileURLs = try fm.contentsOfDirectory(at: folderUrl, includingPropertiesForKeys: nil)
+            for fileURL in fileURLs {
+                var fileURL = fileURL
+                let attributes = try fm.attributesOfItem(atPath: fileURL.path)
+                let fileType = attributes[.type] as? FileAttributeType
+                if(fileType != FileAttributeType.typeDirectory && fileType != FileAttributeType.typeRegular) {
                     continue
                 }
-                guard let frameworkBundle = Bundle(url: fileURL), let executableURL = frameworkBundle.executableURL else {
+                let name = fileURL.lastPathComponent
+                let baseName = name.hasSuffix(".disabled") ? String(name.dropLast(".disabled".count)) : name
+                if(fileType == FileAttributeType.typeDirectory) {
+                    if(!baseName.hasSuffix(".framework")) {
+                        if recurse && !name.hasSuffix(".disabled") {
+                            try collect(fileURL, recurse: true)
+                        }
+                        continue
+                    }
+                    guard let frameworkBundle = Bundle(url: fileURL), let executableURL = frameworkBundle.executableURL else {
+                        continue
+                    }
+                    fileURL = executableURL
+                } else if (fileType == FileAttributeType.typeRegular && !baseName.hasSuffix(".dylib")) {
                     continue
                 }
-                fileURL = executableURL
-            } else if (fileType == FileAttributeType.typeRegular && !baseName.hasSuffix(".dylib")) {
-                continue
-            }
 
-            if !force, checkCodeSignature((fileURL.path as NSString).utf8String) {
-                continue;
+                if !force, checkCodeSignature((fileURL.path as NSString).utf8String) {
+                    continue;
+                }
+                
+                filesToSign.append(fileURL)
             }
-            
-            filesToSign.append(fileURL)
         }
+        try collect(tweakFolderUrl, recurse: recursive)
         
         if filesToSign.isEmpty {
             return
         }
         
         for fileURL in filesToSign {
-            LCPatchAppBundleFixupARM64eSlice(fileURL)
+            LCPatchMachOFixupARM64eSlice((fileURL.path as NSString).fileSystemRepresentation)
         }
         
         try await withUnsafeThrowingContinuation({ c in
@@ -88,6 +95,116 @@ extension LCUtils {
         })
     }
         
+    /// Name of the folder inside a guest app bundle that holds its embedded, team-signed tweaks.
+    public static let embeddedTweaksFolderName = "LCTweaks"
+
+    /// Copies the global tweaks (top level) and the app's tweak folder (recursive) into
+    /// `<bundle>/LCTweaks/{global,app}` and signs every copied Mach-O with the team certificate.
+    /// The copies sit next to the guest executable, which already passes library validation,
+    /// so TweakLoader can dlopen them in JIT-less mode (incl. LiveProcess). Skips work when
+    /// nothing changed since the last embed (manifest of source path/size/mtime).
+    public static func embedTweaks(intoBundle bundleUrl: URL, globalTweakFolder: URL, appTweakFolder: URL?, force: Bool = false, progressHandler: ((Progress) -> Void)? = nil) async throws {
+        let fm = FileManager.default
+        let destRoot = bundleUrl.appendingPathComponent(embeddedTweaksFolderName)
+        let manifestUrl = destRoot.appendingPathComponent(".lcmanifest")
+
+        // (source, path relative to destRoot)
+        var entries: [(src: URL, rel: String)] = []
+
+        func tweakKind(_ url: URL) -> (isTweak: Bool, isDir: Bool) {
+            var isDir: ObjCBool = false
+            guard fm.fileExists(atPath: url.path, isDirectory: &isDir) else { return (false, false) }
+            let name = url.lastPathComponent
+            if name.hasSuffix(".disabled") || name.hasPrefix(".") { return (false, isDir.boolValue) }
+            if isDir.boolValue { return (name.hasSuffix(".framework"), true) }
+            return (name.hasSuffix(".dylib") && name != "TweakLoader.dylib", false)
+        }
+
+        func collect(_ folder: URL, relPrefix: String, recurse: Bool) {
+            guard let items = try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) else { return }
+            for item in items.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }) {
+                let kind = tweakKind(item)
+                let rel = relPrefix + "/" + item.lastPathComponent
+                if kind.isTweak {
+                    entries.append((item, rel))
+                } else if kind.isDir && recurse && !item.lastPathComponent.hasSuffix(".disabled") {
+                    collect(item, relPrefix: rel, recurse: true)
+                }
+            }
+        }
+
+        collect(globalTweakFolder, relPrefix: "global", recurse: false)
+        if let appTweakFolder {
+            collect(appTweakFolder, relPrefix: "app", recurse: true)
+        }
+
+        func machOPath(_ url: URL) -> URL? {
+            if url.pathExtension == "framework" {
+                return Bundle(url: url)?.executableURL
+            }
+            return url
+        }
+
+        // Fingerprint sources so unchanged tweaks aren't re-copied/re-signed on every launch.
+        var manifestLines: [String] = [LCSharedUtils.certificatePassword() != nil ? "signed" : "unsigned"]
+        for entry in entries {
+            let target = machOPath(entry.src) ?? entry.src
+            let attrs = try? fm.attributesOfItem(atPath: target.path)
+            let size = (attrs?[.size] as? NSNumber)?.int64Value ?? -1
+            let mtime = (attrs?[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+            manifestLines.append("\(entry.rel)|\(size)|\(mtime)")
+        }
+        let manifest = manifestLines.joined(separator: "\n")
+
+        if entries.isEmpty {
+            try? fm.removeItem(at: destRoot)
+            return
+        }
+        if !force, fm.fileExists(atPath: destRoot.path),
+           let old = try? String(contentsOf: manifestUrl, encoding: .utf8), old == manifest {
+            return
+        }
+
+        try? fm.removeItem(at: destRoot)
+        try fm.createDirectory(at: destRoot, withIntermediateDirectories: true)
+
+        // Copies get fresh inodes, so the kernel never sees a stale cached signature for them.
+        var filesToSign: [URL] = []
+        for entry in entries {
+            let dst = destRoot.appendingPathComponent(entry.rel)
+            try fm.createDirectory(at: dst.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try fm.copyItem(at: entry.src, to: dst)
+            if let macho = machOPath(dst) {
+                LCPatchMachOFixupARM64eSlice((macho.path as NSString).fileSystemRepresentation)
+                filesToSign.append(macho)
+            }
+        }
+
+        if LCSharedUtils.certificatePassword() != nil && !filesToSign.isEmpty {
+            try await withUnsafeThrowingContinuation({ (c: UnsafeContinuation<Void, Error>) in
+                let progress = signFilesWithZSign(with: filesToSign) { success, error in
+                    if success {
+                        c.resume()
+                    } else if let error {
+                        c.resume(throwing: error)
+                    } else {
+                        c.resume()
+                    }
+                }
+                if let progress {
+                    progressHandler?(progress)
+                }
+            })
+            // Fail loudly here instead of at dlopen time inside the guest.
+            for file in filesToSign where !checkCodeSignature((file.path as NSString).utf8String) {
+                try? fm.removeItem(at: manifestUrl)
+                throw "Tweak \(file.lastPathComponent) is still not accepted by iOS after signing with the team certificate. Make sure the imported certificate is the one LiveContainer itself is signed with."
+            }
+        }
+
+        try manifest.write(to: manifestUrl, atomically: true, encoding: .utf8)
+    }
+
     private static func authenticateUser(completion: @escaping (Bool, Error?) -> Void) {
         // Create a context for authentication
         let context = LAContext()

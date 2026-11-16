@@ -304,6 +304,34 @@ int checkCert(NSData *key,
     return bRet;
 }
 
++ (BOOL)signMachOAtPath:(NSString *)path bundleId:(NSString *)bundleId cert:(NSData *)key pass:(NSString *)pass error:(NSString **)errorOut {
+    ZLog::logs.clear();
+    if (!key || !pass) {
+        if (errorOut) *errorOut = @"No signing certificate imported";
+        return NO;
+    }
+
+    ZSignAsset signAsset;
+    if (!signAsset.InitSimple((const char *)[key bytes], (int)[key length], nil, 0, [pass cStringUsingEncoding:NSUTF8StringEncoding])) {
+        if (errorOut) *errorOut = @"Failed to initialize zSignAsset. Maybe wrong password?";
+        return NO;
+    }
+
+    refreshFile(path);
+    ZMachO macho;
+    if (!macho.Init(path.UTF8String)) {
+        if (errorOut) *errorOut = [NSString stringWithFormat:@"Invalid mach-o file! %@", path];
+        return NO;
+    }
+    string strBundleId(bundleId.UTF8String ?: "");
+    if (!macho.Sign(&signAsset, true, strBundleId, "", "", "")) {
+        if (errorOut) *errorOut = [NSString stringWithFormat:@"Failed to Sign %@", path];
+        return NO;
+    }
+    refreshFile(path);
+    return YES;
+}
+
 // this method is used to get teamId for ADP/Enterprise certs ,don't use it in normal jitless
 + (NSString*)getTeamIdWithCert:(NSData *)cert pass:(NSString *)pass {
     string strPassword;

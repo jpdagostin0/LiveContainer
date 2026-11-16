@@ -19,5 +19,6 @@
 #include "../MultitaskSupport/PiPManager.h"
 #include "../MultitaskSupport/VirtualWindowsHostView.h"
 #include "../LiveContainer/FoundationPrivate.h"
+#include "../LiveContainer/LCCertificateProvisioning.h"
 
 #endif /* LiveContainerSwiftUI_Bridging_Header_h_h */

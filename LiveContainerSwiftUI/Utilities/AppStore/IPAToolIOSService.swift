@@ -117,6 +117,13 @@ final class IPAToolIOSService {
         try keychain.loadAccount()
     }
 
+    /// Machine-anisette snapshot (LCProvisioningBridge keys) from the CoreADI
+    /// identity used for login, for the built-in SideStore to provision a
+    /// signing certificate against the same machine identity.
+    func machineAnisette() async throws -> [String: String] {
+        try await AppStoreClient.machineAnisetteSnapshot()
+    }
+
     func logout() throws {
         activeAccount = nil
         client = nil

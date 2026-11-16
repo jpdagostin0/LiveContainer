@@ -5,4 +5,5 @@
 #include "XPCServer.h"
 #include "../LiveContainer/utils.h"
 #include "PrivateIntentRunner.h"
+#include "../LiveContainer/LCCertificateProvisioning.h"
 #endif /* SideStore_Bridging_Header_h_h */
