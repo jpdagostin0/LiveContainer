@@ -75,6 +75,14 @@ static BOOL LCFairPlayInstallMainSinf(NSData *mainSinf,
         return YES;
     }
 
+    // Resolve symlinks up front: iOS container roots live under /var/mobile,
+    // a symlink to /private/var/mobile. URLByStandardizingPath only resolves
+    // symlinks for paths that exist, so the staged .app root resolves while a
+    // not-yet-written SINF target does not, and the below-root check would
+    // falsely report the path "escapes the app bundle". Anchoring on the
+    // resolved root makes both sides share the same prefix.
+    appURL = appURL.URLByResolvingSymlinksInPath;
+
     NSFileManager *fileManager = NSFileManager.defaultManager;
     NSURL *manifestURL = [appURL URLByAppendingPathComponent:@"SC_Info/Manifest.plist"];
     NSDictionary *manifest = [NSDictionary dictionaryWithContentsOfURL:manifestURL];
@@ -130,6 +138,9 @@ static BOOL LCFairPlayReplicateSinf(NSURL *appURL,
                                     NSMutableArray<NSString *> *diagnostics,
                                     NSError **error) {
     NSFileManager *fileManager = NSFileManager.defaultManager;
+    // Resolve symlinks so nested-SINF below-root checks compare against the
+    // same (/private/var) prefix as the staged app (see LCFairPlayInstallMainSinf).
+    appURL = appURL.URLByResolvingSymlinksInPath;
     NSURL *manifestURL = [appURL URLByAppendingPathComponent:@"SC_Info/Manifest.plist"];
     if (![fileManager fileExistsAtPath:manifestURL.path]) {
         [diagnostics addObject:@"No SC_Info/Manifest.plist; no nested SINF replication requested."];
