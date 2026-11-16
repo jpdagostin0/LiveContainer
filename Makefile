@@ -261,6 +261,38 @@ $(PRODUCTS)/TestJITLess.dylib: $(TJ_OBJS)
 	    -install_name @rpath/TestJITLess.dylib -framework Foundation $(LD_FILTER)
 
 # ---------------------------------------------------------------------------
+# AppStore auth stack (ported from WaffleStore AnisetteKit)
+#   MacADICore.framework : prebuilt static CoreADI (self-contained, incl Unicorn)
+#   NativeStore          : ObjC, Apple Store AMD proof
+#   SAPKit               : SAP signer / kbsync (Swift; drives Unicorn via MacADICore)
+#   MacAnisetteKit       : CoreADI anisette wrapper (Swift)
+# ---------------------------------------------------------------------------
+ASA_DIR    := AppStoreAuth
+ASA_F      := -F $(ASA_DIR)
+ASA_NS_INC := -I$(ASA_DIR)/NativeStore/include
+
+NS_MIN    := 15.0
+NS_SRCS   := $(ASA_DIR)/NativeStore/NativeStore.m
+NS_CFLAGS := $(ASA_NS_INC)
+$(eval $(call objects,NS))
+
+SAP_MIN    := 15.0
+SAP_MODULE := SAPKit
+SAP_SWIFT  := $(wildcard $(ASA_DIR)/SAPKit/*.swift)
+SAP_SWIFTFLAGS := -swift-version 5 $(ASA_F)
+$(eval $(call swiftmodule,SAP))
+
+MAK_MIN    := 15.0
+MAK_MODULE := MacAnisetteKit
+MAK_SWIFT  := $(wildcard $(ASA_DIR)/MacAnisetteKit/*.swift)
+MAK_SWIFTFLAGS := -swift-version 5 $(ASA_F) $(ASA_NS_INC) -Xcc $(ASA_NS_INC)
+$(eval $(call swiftmodule,MAK))
+
+.PHONY: appstoreauth
+appstoreauth: $(NS_OBJS) $(SAP_SWIFT_OBJ) $(MAK_SWIFT_OBJ)
+	@echo "  APPSTOREAUTH modules compiled (NativeStore, SAPKit, MacAnisetteKit)"
+
+# ---------------------------------------------------------------------------
 # App extensions
 # ---------------------------------------------------------------------------
 APPEX_RPATH := -Xlinker -rpath -Xlinker @executable_path/Frameworks -Xlinker -rpath -Xlinker @executable_path/../../Frameworks

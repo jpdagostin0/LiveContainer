@@ -1,0 +1,4 @@
+module NativeStore {
+    header "NativeStore.h"
+    export *
+}
