@@ -25,8 +25,7 @@
 + (Class)_statusBarManagerClass {
     if (@available(iOS 16.0, *)) {
         return LCStatusBarManager.class;
-    } else {
-        return UIStatusBarManager.class;
     }
+    return UIStatusBarManager.class;
 }
 @end

@@ -22,6 +22,9 @@
 @property(nonatomic) BOOL methodInited;
 @property(nonatomic) int deboundeToken;
 - (void)handleAppDidEnterBackground:(NSNotification *)notification;
+@end
+// Copied from -[UIApplication _handleTaskCompletionAndTerminate:] at runtime.
+@interface Dead10ccFix (UIApplication)
 - (void)_handleTaskCompletionAndTerminate:(id)arg1;
 @end
 @interface UIApplication : NSObject
@@ -80,16 +83,13 @@ void initDead10ccFix(void) {
         uint64_t count = pidinfo_size / sizeof(struct proc_fdinfo);
         struct proc_fdinfo *fdinfo = (struct proc_fdinfo *)pidinfo;
 
-        while (count--) {
+        for (; count > 0; count--, fdinfo++) {
             if (fdinfo->proc_fdtype == PROX_FDTYPE_VNODE) {
                 struct vnode_fdinfowithpath vnodeinfo;
                 //memset(&vnodeinfo, 0, 0x200); // TODO: Why not sizeof(vnodeinfo)?
                 int vnodeinfo_size = proc_pidfdinfo(pid, fdinfo->proc_fd, PROC_PIDFDVNODEPATHINFO, &vnodeinfo, sizeof(vnodeinfo));
-                if (vnodeinfo_size == 0) {
-                    // _rbs_process_log with %{public}@ proc_pidfdinfo failed for fd %d with errno %d
-                    continue;
-                } else if (vnodeinfo_size < sizeof(vnodeinfo)) {
-                    // _rbs_process_log with %{public}@ Weird size (%d != %lu) for fd %d
+                // proc_pidfdinfo failed, or returned a short (weird-sized) record
+                if (vnodeinfo_size < (int)sizeof(vnodeinfo)) {
                     continue;
                 }
 
@@ -107,7 +107,6 @@ void initDead10ccFix(void) {
                 path = [path stringByStandardizingPath];
                 [openFilePaths addObject:path];
             }
-            fdinfo++;
         }
     }
     free(pidinfo);

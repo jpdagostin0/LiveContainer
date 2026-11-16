@@ -49,10 +49,6 @@ uint32_t dyld_get_sdk_version(const struct mach_header *mh);
 + (NSData *)bookmarkForURL:(NSURL *)url;
 @end
 
-@interface NSUserDefaults (LiveContainer)
-+ (bool)sideStoreExist;
-@end
-
 @interface LCP12CertHelper : NSObject
 
 - (instancetype)initWithP12Data:(NSData *)p12Data password:(NSString *)password error:(NSError **)error;
@@ -71,5 +67,5 @@ typedef NS_ENUM(NSInteger, GeneratedIconStyle) {
 + (instancetype)generateIconForBundleURL:(NSURL *)url style:(GeneratedIconStyle)style hasBorder:(BOOL)hasBorder;
 @end
 BOOL saveCGImage(CGImageRef image, NSURL *url);
-CGImageRef loadCGImageFromURL(NSURL *url);
+CGImageRef loadCGImageFromURL(NSURL *url) CF_RETURNS_RETAINED;
 NSNumber *LCGetDefaultClassicMode(NSURL *appURL);

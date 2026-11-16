@@ -251,7 +251,7 @@ BOOL saveCGImage(CGImageRef image, NSURL* url) {
     return success;
 }
 
-CGImageRef loadCGImageFromURL(NSURL* url) {
+CGImageRef loadCGImageFromURL(NSURL* url) CF_RETURNS_RETAINED {
     // 1. Create an image source from the URL
     // Passing NULL for options; you can pass a dictionary to hint at the file type
     CGImageSourceRef source = CGImageSourceCreateWithURL((__bridge CFURLRef)url, NULL);

@@ -365,8 +365,8 @@ static BOOL LCSetScalarIvar(id object, const char *name, const void *value, size
 void LCLoadSpringBoardFramework(void) {
     bypass_os_variant_has_internal_content(^{
         dlerror();
-        void *springBoard = dlopen("/System/Library/PrivateFrameworks/SpringBoard.framework/SpringBoard",
-                                   RTLD_LAZY | RTLD_GLOBAL);
+        __unused void *springBoard = dlopen("/System/Library/PrivateFrameworks/SpringBoard.framework/SpringBoard",
+                                            RTLD_LAZY | RTLD_GLOBAL);
 
         NSCAssert(springBoard, @"Cannot load SpringBoard.framework: %s",
                   dlerror() ?: "unknown dlopen error");

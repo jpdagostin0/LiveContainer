@@ -105,8 +105,7 @@ __attribute__((constructor)) static void NSFMGuestHooksInit() {
     CFTypeRef value = SecTaskCopyValueForEntitlement(taskSelf, CFSTR("application-identifier"), &error);
     CFRelease(taskSelf);
     if (value) {
-        NSString *entStr = (__bridge NSString *)value;
-        CFRelease(value);
+        NSString *entStr = (__bridge_transfer NSString *)value;
         NSRange dotRange = [entStr rangeOfString:@"."];
         if (dotRange.location != NSNotFound) {
             NSString *result = [entStr substringFromIndex:dotRange.location + 1];

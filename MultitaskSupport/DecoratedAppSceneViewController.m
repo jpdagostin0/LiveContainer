@@ -18,6 +18,7 @@
 @end
 
 @implementation DecoratedAppSceneViewController
+@dynamic view;
 - (instancetype)initWindowName:(NSString *)windowName bundleId:(NSString *)bundleId dataUUID:(NSString *)dataUUID rootVC:(UIViewController *)rootVC {
     self = [super initWithNibName:nil bundle:nil];
     self.view = [[UIStackView alloc] initWithFrame:self.view.frame];

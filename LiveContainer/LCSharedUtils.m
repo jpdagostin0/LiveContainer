@@ -21,8 +21,10 @@ NSString *FBSOpenApplicationOptionKeyPayloadURL = @"__PayloadURL";
         void *taskSelf = SecTaskCreateFromSelf(NULL);
         CFErrorRef error = NULL;
         CFTypeRef cfans = SecTaskCopyValueForEntitlement(taskSelf, CFSTR("com.apple.developer.team-identifier"), &error);
-        if (CFGetTypeID(cfans) == CFStringGetTypeID()) {
-            ans = (__bridge NSString *)cfans;
+        if (cfans && CFGetTypeID(cfans) == CFStringGetTypeID()) {
+            ans = (__bridge_transfer NSString *)cfans;
+        } else if (cfans) {
+            CFRelease(cfans);
         }
         CFRelease(taskSelf);
 #endif
@@ -41,7 +43,7 @@ NSString *FBSOpenApplicationOptionKeyPayloadURL = @"__PayloadURL";
             if (status == errSecItemNotFound)
                 status = SecItemAdd((__bridge CFDictionaryRef)query, (CFTypeRef *)&result);
             if (status == errSecSuccess) {
-                status = SecItemDelete((__bridge CFDictionaryRef)query); // remove temp item
+                SecItemDelete((__bridge CFDictionaryRef)query); // remove temp item
                 NSDictionary *dict = (__bridge_transfer NSDictionary *)result;
                 NSString *accessGroup = dict[(__bridge NSString *)kSecAttrAccessGroup];
                 NSArray *components = [accessGroup componentsSeparatedByString:@"."];

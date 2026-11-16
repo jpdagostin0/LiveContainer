@@ -325,12 +325,6 @@
     }
 
     if (self.contentView) {
-        BOOL isiOS26 = NO;
-        if (@available(iOS 19.0, *)) {
-            if (@available(iOS 27.0, *)) {
-            } else
-                isiOS26 = YES;
-        }
         // Discard position
         frame.origin = CGPointZero;
         self.contentView.frame = frame;

@@ -58,13 +58,13 @@ static void ensureBreakpointExceptionHandler(void) {
 
 static void overwriteAppExecutableFileType(void) {
     struct mach_header_64* appImageMachOHeader = (struct mach_header_64*)orig_dyld_get_image_header(appMainImageIndex);
-    kern_return_t kret = builtin_vm_protect(mach_task_self(), (vm_address_t)appImageMachOHeader, sizeof(appImageMachOHeader), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
+    kern_return_t kret = builtin_vm_protect(mach_task_self(), (vm_address_t)appImageMachOHeader, sizeof(*appImageMachOHeader), false, PROT_READ | PROT_WRITE | VM_PROT_COPY);
     if (kret != KERN_SUCCESS) {
         NSLog(@"[LC] failed to change appImageMachOHeader to rw");
     } else {
         NSLog(@"[LC] changed appImageMachOHeader to rw");
         appImageMachOHeader->filetype = MH_EXECUTE;
-        builtin_vm_protect(mach_task_self(), (vm_address_t)appImageMachOHeader, sizeof(appImageMachOHeader), false, PROT_READ);
+        builtin_vm_protect(mach_task_self(), (vm_address_t)appImageMachOHeader, sizeof(*appImageMachOHeader), false, PROT_READ);
     }
 }
 
@@ -160,7 +160,7 @@ void* getCachedSymbol(NSString* symbolName, mach_header_u* header) {
         return NULL;
     }
     const uint8_t* uuid = LCGetMachOUUID(header);
-    if (!uuid || memcmp(uuid, [cachedSymbolUUID bytes], 16)) {
+    if (!uuid || memcmp(uuid, [cachedSymbolUUID bytes], 16) != 0) {
         return NULL;
     }
 

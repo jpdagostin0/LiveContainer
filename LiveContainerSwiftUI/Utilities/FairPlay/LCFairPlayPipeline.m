@@ -486,6 +486,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
         }
 
         NSUInteger completed = 0;
+        NSString *failedPath = nil;
         for (NSString *relativePath in machOs) @autoreleasepool {
                 if (progress) {
                     progress(@"decrypting", completed, machOs.count);
@@ -498,15 +499,21 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
                                              LCFairPlayCoreLog,
                                              (__bridge void *)diagnostics);
                 if (result < 0) {
-                    if (error) {
-                        *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
-                                                     [NSString stringWithFormat:@"FairPlay decryption failed for %@.", relativePath],
-                                                     diagnostics, @[ stagingRoot.path ], nil);
-                    }
-                    return nil;
+                    failedPath = relativePath;
+                    break;
                 }
                 completed += 1;
             }
+        // Build the error outside the per-file pool: an NSError written to the
+        // autoreleasing out-parameter inside it would be freed when it drains.
+        if (failedPath) {
+            if (error) {
+                *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
+                                             [NSString stringWithFormat:@"FairPlay decryption failed for %@.", failedPath],
+                                             diagnostics, @[ stagingRoot.path ], nil);
+            }
+            return nil;
+        }
 
         if (progress) {
             progress(@"verifying", completed, machOs.count);
@@ -711,6 +718,7 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
         }
 
         NSUInteger completed = 0;
+        NSString *failedPath = nil;
         for (NSString *relativePath in machOs) @autoreleasepool {
                 if (progress) progress(@"decrypting", completed, machOs.count);
                 NSString *sourcePath = [appURL.path stringByAppendingPathComponent:relativePath];
@@ -721,15 +729,21 @@ static NSURL *LCFairPlayRunAttempt(NSURL *ipaURL,
                                                     LCFairPlayCoreLog,
                                                     (__bridge void *)diagnostics);
                 if (decryptResult < 0) {
-                    if (error) {
-                        *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
-                                                     [NSString stringWithFormat:@"FairPlay decryption failed for %@.", relativePath],
-                                                     diagnostics, @[ appURL.path ], nil);
-                    }
-                    return nil;
+                    failedPath = relativePath;
+                    break;
                 }
                 completed += 1;
             }
+        // Build the error outside the per-file pool: an NSError written to the
+        // autoreleasing out-parameter inside it would be freed when it drains.
+        if (failedPath) {
+            if (error) {
+                *error = LCFairPlayMakeError(LCFairPlayErrorDecryption,
+                                             [NSString stringWithFormat:@"FairPlay decryption failed for %@.", failedPath],
+                                             diagnostics, @[ appURL.path ], nil);
+            }
+            return nil;
+        }
 
         if (progress) progress(@"verifying", completed, machOs.count);
         if (!LCFairPlayVerifyDecryptedMachOs(resultAppURL, diagnostics, &fileError)) {

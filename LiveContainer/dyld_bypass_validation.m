@@ -94,7 +94,7 @@ static int hooked___fcntl(int fildes, int cmd, void *param) {
     return orig_fcntl(fildes, cmd, param);
 }
 
-char *searchDyldFunction(char *base, char *signature, int length) {
+char *searchDyldFunction(char *base, const char *signature, int length) {
     char *patchAddr = NULL;
     for (int i = 0; i < 0x80000; i += 4) {
         if (base[i] == signature[0] && memcmp(base + i, signature, length) == 0) {

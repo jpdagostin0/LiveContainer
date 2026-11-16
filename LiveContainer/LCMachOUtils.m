@@ -195,7 +195,6 @@ int LCPatchExecSlice(const char *path, struct mach_header_64 *header, bool doInj
         strcpy((void *)dylibLoaderCommand + dylibLoaderCommand->dylib.name.offset, doInject ? tweakLoaderPath : libCppPath);
     } else {
         if (freeLoadCommandCountLeft >= tweakLoaderLoadDylibCmdSize) {
-            freeLoadCommandCountLeft -= tweakLoaderLoadDylibCmdSize;
             insertDylibCommand(doInject ? LC_LOAD_DYLIB : 0x114514, doInject ? tweakLoaderPath : libCppPath, header);
         } else {
             // Not enough free space of injection tweak loader!
@@ -236,11 +235,20 @@ int LCPatchExecSlice(const char *path, struct mach_header_64 *header, bool doInj
 
 NSString *LCParseMachO(const char *path, bool readOnly, LCParseMachOCallback callback) {
     int fd = open(path, readOnly ? O_RDONLY : O_RDWR, (mode_t)readOnly ? 0400 : 0600);
+    if (fd < 0) {
+        return [NSString stringWithFormat:@"Failed to open %s: %s", path, strerror(errno)];
+    }
     struct stat s;
-    fstat(fd, &s);
+    if (fstat(fd, &s) != 0) {
+        NSString *message = [NSString stringWithFormat:@"Failed to stat %s: %s", path, strerror(errno)];
+        close(fd);
+        return message;
+    }
     void *map = mmap(NULL, s.st_size, readOnly ? PROT_READ : (PROT_READ | PROT_WRITE), readOnly ? MAP_PRIVATE : MAP_SHARED, fd, 0);
     if (map == MAP_FAILED) {
-        return [NSString stringWithFormat:@"Failed to map %s: %s", path, strerror(errno)];
+        NSString *message = [NSString stringWithFormat:@"Failed to map %s: %s", path, strerror(errno)];
+        close(fd);
+        return message;
     }
 
     uint32_t magic = *(uint32_t *)map;
@@ -258,6 +266,8 @@ NSString *LCParseMachO(const char *path, bool readOnly, LCParseMachOCallback cal
     } else if (magic == MH_MAGIC_64 || magic == MH_MAGIC) {
         callback(path, (struct mach_header_64 *)map, fd, map);
     } else {
+        munmap(map, s.st_size);
+        close(fd);
         return @"Not a Mach-O file";
     }
 

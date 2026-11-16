@@ -101,11 +101,6 @@ static BOOL checkJITEnabled() {
 #endif
 }
 
-static uint64_t rnd64(uint64_t v, uint64_t r) {
-    r--;
-    return (v + r) & ~r;
-}
-
 void overwriteMainCFBundle(void) {
     // Overwrite CFBundleGetMainBundle
     uint32_t *pc = (uint32_t *)CFBundleGetMainBundle;
@@ -201,7 +196,7 @@ int hook__NSGetExecutablePath_overwriteExecPath(DyldAPI *dyldApiInstancePtr, cha
         assert(mainExecutablePathPtr != 0);
     }
 
-    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)dyldConfig, sizeof(dyldConfig), false, PROT_READ | PROT_WRITE);
+    kern_return_t ret = builtin_vm_protect(mach_task_self(), (mach_vm_address_t)dyldConfig, sizeof(*dyldConfig), false, PROT_READ | PROT_WRITE);
     if (ret != KERN_SUCCESS) {
         assert(os_tpro_is_supported());
         os_thread_self_restrict_tpro_to_rw();
@@ -272,7 +267,6 @@ NSString *LCPrepareGuestExtension(NSDictionary *request) {
         [accessedURLs addObject:url];
     }
     NSString *bundlePath = request[@"bundlePath"];
-    NSString *appPath = request[@"appBundlePath"];
     NSString *homePath = request[@"containerPath"];
     NSString *lcHomePath = request[@"lcHomePath"];
 
@@ -376,8 +370,7 @@ static NSString *invokeAppMain(NSString *selectedApp, NSString *selectedContaine
         CFTypeRef value = SecTaskCopyValueForEntitlement(taskSelf, CFSTR("application-identifier"), &error);
         CFRelease(taskSelf);
         if (value) {
-            NSString *entStr = (__bridge NSString *)value;
-            CFRelease(value);
+            NSString *entStr = (__bridge_transfer NSString *)value;
             NSRange dotRange = [entStr rangeOfString:@"."];
             if (dotRange.location != NSNotFound) {
                 NSString *expectedBundleId = [entStr substringFromIndex:dotRange.location + 1];

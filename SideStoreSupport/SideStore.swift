@@ -215,7 +215,7 @@ class RefreshHandler: NSObject, RefreshServer {
         }
     }
 
-    func onConnection(_ connection: NSXPCConnection!) {
+    func onConnection(_ connection: NSXPCConnection) {
         connection.remoteObjectInterface = RefreshClientInterface()
         client = connection.remoteObjectProxy as? RefreshClient
     }

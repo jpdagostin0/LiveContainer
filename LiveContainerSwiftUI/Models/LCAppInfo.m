@@ -195,7 +195,10 @@
 
     if ([NSFileManager.defaultManager fileExistsAtPath:cachedIconPath]) {
         CGImageRef imageRef = loadCGImageFromURL(cachedIconUrl);
-        uiIcon = [UIImage imageWithCGImage:imageRef];
+        if (imageRef) {
+            uiIcon = [UIImage imageWithCGImage:imageRef];
+            CGImageRelease(imageRef);
+        }
     }
 
     // generate and save icon cache to disk
@@ -507,7 +510,6 @@
         return cachedMode.unsignedIntegerValue;
     }
 
-    NSError *error = nil;
     NSNumber *mode = LCGetDefaultClassicMode([NSURL fileURLWithPath:self.bundlePath]);
 
     _info[@"LCClassicModeCache"] = @{
@@ -661,7 +663,7 @@
 }
 
 - (MultitaskSpecified)multitaskSpecified {
-    return (LCOrientationLock)[((NSNumber *)_info[@"MultitaskSpecified"])intValue];
+    return (MultitaskSpecified)[((NSNumber *)_info[@"MultitaskSpecified"])intValue];
 }
 - (void)setMultitaskSpecified:(MultitaskSpecified)multitaskSpecified {
     _info[@"MultitaskSpecified"] = [NSNumber numberWithInt:(int)multitaskSpecified];

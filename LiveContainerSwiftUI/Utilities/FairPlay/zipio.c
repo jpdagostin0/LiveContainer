@@ -395,8 +395,14 @@ int zip_create_from_dir(const char *src_dir, const char *zip_path, char *err, si
         if (e->fts_info != FTS_D && e->fts_info != FTS_F && e->fts_info != FTS_SL) continue;
         const char *rel = e->fts_path + rootlen + 1;
         if (cnt == cap) {
+            went_t *grown = realloc(ents, cap * 2 * sizeof *ents);
+            if (!grown) {
+                snprintf(err, errlen, "out of memory");
+                rc = -1;
+                break;
+            }
+            ents = grown;
             cap *= 2;
-            ents = realloc(ents, cap * sizeof *ents);
         }
         went_t *w = &ents[cnt];
         memset(w, 0, sizeof *w);

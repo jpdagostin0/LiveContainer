@@ -8,10 +8,12 @@
 #import <Foundation/Foundation.h>
 #import <UserNotifications/UserNotifications.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 __attribute__((swift_attr("@Sendable")))
 @protocol RefreshServer
 - (void)updateProgress:(double)value;
-- (void)finish:(NSString*)error;
+- (void)finish:(NSString* _Nullable)error;
 - (void)onConnection:(NSXPCConnection*)connection;
 - (void)finishedLaunching;
 - (void)addNotificationRequest:(UNNotificationRequest*)request;
@@ -32,13 +34,13 @@ __attribute__((swift_attr("@Sendable")))
 
 @interface LiveProcessSideStoreHandler : NSObject
 @property(class, readonly, strong) LiveProcessSideStoreHandler* shared;
-@property NSXPCConnection* connection;
-@property NSObject<RefreshServer>* server;
+@property(nullable) NSXPCConnection* connection;
+@property(nullable) NSObject<RefreshServer>* server;
 
 @end
 
-NSXPCListener* startAnonymousListener(NSObject<RefreshServer>* reporter);
-NSData* bookmarkForURL(NSURL* url);
+NSXPCListener* _Nullable startAnonymousListener(NSObject<RefreshServer>* reporter);
+NSData* _Nullable bookmarkForURL(NSURL* url);
 // RefreshClient interface with the provisioning anisette-dictionary argument
 // classes whitelisted for NSXPC. Used for both the guest's exportedInterface
 // and the host's remoteObjectInterface.
@@ -51,3 +53,5 @@ void installSideStoreNotificationHooks(void);
 @property(class, readonly) SideStoreClient* shared;
 - (void)relaunchLC;
 @end
+
+NS_ASSUME_NONNULL_END

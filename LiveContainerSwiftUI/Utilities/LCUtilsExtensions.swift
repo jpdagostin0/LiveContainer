@@ -643,7 +643,11 @@ extension LCUtils {
         let sideStoreApp = LCAppModel(appInfo: BuiltInSideStoreAppInfo.shared, delegate: delegate)
 
         Task {
-            try await sideStoreApp.runApp(bundleIdOverride: "builtinSideStore", urlStr: urlStr)
+            do {
+                try await sideStoreApp.runApp(bundleIdOverride: "builtinSideStore", urlStr: urlStr)
+            } catch {
+                NSLog("[LC] Failed to open built-in SideStore: \(error)")
+            }
         }
     }
 }
