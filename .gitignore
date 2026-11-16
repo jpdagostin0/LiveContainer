@@ -1,12 +1,10 @@
-.theos/
-packages/
 .DS_Store
-*.xcscmblueprint
-*.xccheckout
-*.xcarchive
 xcuserdata
 Resources/Frameworks/OpenSSL.framework
-apps_nightly.json
 
-# Makefile (Linux/xtool) build output
+# Build output (idl build)
 build/
+.idl/
+
+# SideStore fork: its own git repo (built on macOS), embedded via SIDESTORE_IPA
+SideStore/

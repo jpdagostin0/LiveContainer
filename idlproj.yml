@@ -1,55 +1,253 @@
-# idlproj.yml: Linux build of LiveContainer with ../ios-dev-linux (`idl`).
+# idlproj.yml: the whole LiveContainer+SideStore build, driven by idl
+# (~/projs/ios-dev-linux).
 #
-# Hybrid build: the Makefile builds the dynamic components idl's single-target
-# model can't express (LiveContainerShared.framework, LiveContainerSwiftUI.framework,
-# ZSign/TweakLoader/TestJITLess dylibs, the .appex extensions) into build/products
-# and stages them under build-idl/stage/. idl builds the main.c bootstrap stub,
-# assembles the .app (Info.plist + entitlements + staged Frameworks/PlugIns +
-# resources), ldid-signs, and zips the IPA.
+#   idl build                         # -> build/LiveContainer.ipa and
+#                                     #    build/LiveContainer+SideStore.ipa (post_build)
+#   idl build LiveContainerSwiftUI    # one target plus its dependencies
+#   idl clean
 #
-#   make stage          # build + stage the dynamic components (Makefile)
-#   idl build           # -> build-idl/LiveContainer.ipa
-#
-# main.c is a dlopen bootstrap (entry _LiveContainerMainC) that loads
-# LiveContainerShared.framework at runtime, so it stays a tiny standalone exe.
+# Targets mirror upstream's Xcode targets. Frameworks, dylibs and extensions
+# are built first and embedded into the LiveContainer app; the static targets
+# (App Store auth stack) are linked into LiveContainerSwiftUI.framework.
 
 toolchain:
   sdk_bundle: ~/.swiftpm/swift-sdks/darwin.artifactbundle
   swiftly_bin: ~/.local/share/swiftly/bin
 
+defaults:
+  min_ios: "15.0"
+  build_dir: build
+  frameworks: [UIKit, Foundation]
+  defines: ["NS_BLOCK_ASSERTIONS=1"]
+  cflags: [-w]
+  swiftflags: [-swift-version, "5", -Xcc, -DNS_BLOCK_ASSERTIONS=1]
+  # Xcode's header map: any project header is reachable by its bare name.
+  quote_include_dirs:
+    - LiveContainer
+    - LiveContainer/Tweaks
+    - LiveContainerSwiftUI
+    - LiveContainerSwiftUI/Models
+    - LiveContainerSwiftUI/Utilities
+    - LiveContainerSwiftUI/Utilities/AppStore
+    - LiveContainerSwiftUI/Utilities/FairPlay
+    - LiveContainerSwiftUI/Utilities/WorseQuery
+    - MultitaskSupport
+    - ShareExtension
+    - LaunchAppExtension
+    - SideStoreSupport
+    - ZSign
+    - ZSign/common
+    - litehook/src
+    - litehook/external/include
+  plist_vars:
+    DEVELOPMENT_TEAM: AAAAA11111
+    AppIdentifierPrefix: "AAAAA11111."
+    APP_GROUP_SIDESTORE: group.com.SideStore.SideStore
+    APP_GROUP_ALTSTORE: group.com.rileytestut.AltStore
+
 targets:
+  # ------------------------------------------------------------ app
   - name: LiveContainer
-    builder: direct
-    dir: .
     bundle_id: com.kdt.livecontainer
-    min_ios: "15.0"
     version: "3.7.11"
     build_number: "1"
-    build_dir: build-idl
+    # main.c is a dlopen bootstrap; everything else is loaded from Frameworks/.
     sources: [LiveContainer/main.c]
-    # main.c is a pure bootstrap stub; it links only libSystem (dlopen).
     frameworks: []
-    # Custom entry point; everything else is dlopened from Frameworks/ at runtime.
-    ldflags: ["-e", "_LiveContainerMainC"]
-    # Pre-processed by `make stage` (lcbuild strips the LaunchScreen storyboard
-    # key idl can't satisfy, and applies the app plist overrides).
-    info_plist: build-idl/gen/Info.plist
-    plist_vars:
-      PRODUCT_BUNDLE_IDENTIFIER: com.kdt.livecontainer
-      DEVELOPMENT_TEAM: AAAAA11111
-      AppIdentifierPrefix: "AAAAA11111."
-      APP_GROUP_SIDESTORE: group.com.SideStore.SideStore
-      APP_GROUP_ALTSTORE: group.com.rileytestut.AltStore
+    ldflags: [-e, _LiveContainerMainC]
+    info_plist: LiveContainer/Info.plist
+    info:
+      LCVersionInfo: "Release ($(GIT_BRANCH)/$(GIT_COMMIT))"
+      CFBundleDevelopmentRegion: en
+      UIApplicationSupportsIndirectInputEvents: true
+      UILaunchStoryboardName: ~
+      UILaunchImageFile: ~
+      UILaunchImages: ~
     entitlements: entitlements.xml
     resources:
-      # Opaque .framework bundles (idl routes these to Frameworks/).
-      # Loose dylibs, .appex extensions and .lproj are injected by
-      # `make idl-postbundle` because idl's resource router can't place them.
-      - build-idl/stage/Frameworks
-      # LiveContainer target resources (Resources/ group members).
       - Resources/Settings.bundle
       - Resources/universal.js
       - Resources/DefaultIcon.png
       - Resources/AppIconGrey60x60@2x.png
       - "Resources/AppIconGrey76x76@2x~ipad.png"
+      - Resources/Localizable.xcstrings
+      - "Resources/*.lproj"
       - LiveContainerSwiftUI/ViewApp.intentdefinition
+      - Resources/Frameworks/CydiaSubstrate.framework
+      - OpenSSL/Frameworks/iphoneos/OpenSSL.framework
+    embed:
+      - LiveContainerShared
+      - LiveContainerSwiftUI
+      - SideStoreSupport
+      - TweakLoader
+      - ZSign
+      - TestJITLess
+      - LiveProcess
+      - ShareExtension
+      - LaunchAppExtension
+    # Embed the built-in SideStore -> build/LiveContainer+SideStore.ipa
+    post_build: [bash, build-support/embed-sidestore.sh]
+
+  # ----------------------------------------------------- frameworks
+  - name: LiveContainerShared
+    type: framework
+    bundle_id: com.kdt.livecontainer.LiveContainerShared
+    sources:
+      - LiveContainer/dyld_bypass_validation.m
+      - LiveContainer/Localization.m
+      - LiveContainer/LCMachOUtils.m
+      - LiveContainer/LCSharedUtils.m
+      - LiveContainer/LCBootstrap.m
+      - LiveContainer/utils.m
+      - LiveContainer/Tweaks
+      - litehook/src/litehook.c
+    frameworks: [Foundation, UIKit, Security]
+    cflags: [-w, -fcommon, -DFISHHOOK_EXPORT=1]
+
+  - name: LiveContainerSwiftUI
+    type: framework
+    bundle_id: com.kdtLiveContainerSwiftUI
+    sources:
+      - LiveContainerSwiftUI
+      - MultitaskSupport
+      - build-support/ViewAppIntent.swift
+    bridging_header: LiveContainerSwiftUI/LiveContainerSwiftUI-Bridging-Header.h
+    include_dirs: [AppStoreAuth/NativeStore/include]
+    framework_dirs: [AppStoreAuth]
+    link: [LiveContainerShared, NativeStore, SAPKit, MacAnisetteKit, AppStoreCore]
+    frameworks: [UIKit, Foundation, IOKit, Security, MacADICore]
+    libraries: [archive, z, c++, resolv, compression, bz2]
+    ldflags: [-U, _OBJC_CLASS_$_RBSTarget]
+
+  - name: SideStoreSupport
+    type: framework
+    bundle_id: com.kdt.livecontainer.SideStoreSupport
+    sources: [SideStoreSupport]
+    bridging_header: SideStoreSupport/SideStore-Bridging-Header.h
+    swiftflags: [-swift-version, "5", -Xcc, -DNS_BLOCK_ASSERTIONS=1, -enable-upcoming-feature, MemberImportVisibility]
+    link: [LiveContainerShared]
+
+  # ---------------------------------------- App Store auth (static)
+  # MacADICore.framework is a prebuilt static CoreADI (incl. Unicorn).
+  - name: NativeStore
+    type: static
+    sources: [AppStoreAuth/NativeStore/NativeStore.m]
+    include_dirs: [AppStoreAuth/NativeStore/include]
+
+  - name: SAPKit
+    type: static
+    sources: [AppStoreAuth/SAPKit]
+    framework_dirs: [AppStoreAuth]
+
+  - name: MacAnisetteKit
+    type: static
+    sources: [AppStoreAuth/MacAnisetteKit]
+    framework_dirs: [AppStoreAuth]
+    include_dirs: [AppStoreAuth/NativeStore/include]
+
+  - name: AppStoreCore
+    type: static
+    sources: [AppStoreAuth/AppStoreCore]
+    framework_dirs: [AppStoreAuth]
+    include_dirs: [AppStoreAuth/NativeStore/include]
+    link: [SAPKit, MacAnisetteKit]
+
+  # --------------------------------------------------------- dylibs
+  - name: TweakLoader
+    type: dylib
+    sources: [TweakLoader]
+    ldflags:
+      - -U
+      - _OBJC_CLASS_$_FBSSceneParameters
+      - -U
+      - _OBJC_CLASS_$_LSApplicationWorkspace
+      - -U
+      - _OBJC_CLASS_$_DOCConfiguration
+
+  - name: ZSign
+    type: dylib
+    sources: [ZSign]
+    # <openssl/x.h> -> OpenSSL.framework/Headers on a case-sensitive filesystem
+    include_dirs: [build-support/include]
+    framework_dirs: [OpenSSL/Frameworks/iphoneos]
+    frameworks: [OpenSSL, Foundation]
+    cflags: [-w, -fno-modules]
+
+  - name: TestJITLess
+    type: dylib
+    sources: [TestJITLess]
+    frameworks: [Foundation]
+
+  # ----------------------------------------------------- extensions
+  - name: LiveProcess
+    type: appex
+    bundle_id: com.kdt.livecontainer.LiveProcess
+    sources: [LiveProcess]
+    link: [LiveContainerShared]
+    frameworks: [Foundation]
+    ldflags: [-e, _NSExtensionMain]
+    dead_strip: false
+    info_plist: LiveProcess/Info.plist
+    entitlements: LiveProcess/LiveProcess.entitlements
+    info:
+      CFBundleDisplayName: LiveProcess
+      GCSupportsControllerUserInteraction: true
+      GCSupportsGameMode: true
+      NFCReaderUsageDescription: The guest app is requesting for this permission.
+      NSAppleMusicUsageDescription: The guest app is requesting for this permission.
+      NSBluetoothAlwaysUsageDescription: The guest app is requesting for this permission.
+      NSBluetoothPeripheralUsageDescription: The guest app is requesting for this permission.
+      NSCameraUsageDescription: The guest app is requesting for this permission.
+      NSContactsUsageDescription: The guest app is requesting for this permission.
+      NSFaceIDUsageDescription: The guest app is requesting for this permission.
+      NSFallDetectionUsageDescription: The guest app is requesting for this permission.
+      NSGKFriendListUsageDescription: The guest app is requesting for this permission.
+      NSHealthClinicalHealthRecordsShareUsageDescription: The guest app is requesting for this permission.
+      NSHealthShareUsageDescription: The guest app is requesting for this permission.
+      NSHealthUpdateUsageDescription: The guest app is requesting for this permission.
+      NSHomeKitUsageDescription: The guest app is requesting for this permission.
+      NSIdentityUsageDescription: The guest app is requesting for this permission.
+      NSLocalNetworkUsageDescription: The guest app is requesting for this permission.
+      NSLocationAlwaysAndWhenInUseUsageDescription: The guest app is requesting for this permission.
+      NSLocationTemporaryUsageDescriptionDictionary: The guest app is requesting for this permission.
+      NSLocationUsageDescription: The guest app is requesting for this permission.
+      NSLocationWhenInUseUsageDescription: The guest app is requesting for this permission.
+      NSMicrophoneUsageDescription: The guest app is requesting for this permission.
+      NSMotionUsageDescription: The guest app is requesting for this permission.
+      NSNearbyInteractionAllowOnceUsageDescription: The guest app is requesting for this permission.
+      NSNearbyInteractionUsageDescription: The guest app is requesting for this permission.
+      NSPhotoLibraryAddUsageDescription: The guest app is requesting for this permission.
+      NSPhotoLibraryUsageDescription: The guest app is requesting for this permission.
+      NSSensorKitUsageDescription: The guest app is requesting for this permission.
+      NSSiriUsageDescription: The guest app is requesting for this permission.
+      NSSpeechRecognitionUsageDescription: The guest app is requesting for this permission.
+      NSUserTrackingUsageDescription: The guest app is requesting for this permission.
+
+  - name: ShareExtension
+    type: appex
+    bundle_id: com.kdt.livecontainer.ShareExtension
+    min_ios: "16.0"
+    version: "3.7.11"
+    build_number: "3.7.11"
+    sources: [ShareExtension]
+    bridging_header: ShareExtension/ShareExtension-Bridging-Header.h
+    swiftflags: [-swift-version, "5", -Xcc, -DNS_BLOCK_ASSERTIONS=1, -enable-upcoming-feature, MemberImportVisibility]
+    link: [LiveContainerShared]
+    frameworks: [Foundation]
+    ldflags: [-e, _NSExtensionMain]
+    info_plist: ShareExtension/Info.plist
+    entitlements: ShareExtension/ShareExtension.entitlements
+
+  - name: LaunchAppExtension
+    type: appex
+    bundle_id: com.kdt.livecontainer.LaunchAppExtension
+    min_ios: "16.0"
+    sources: [LaunchAppExtension]
+    bridging_header: LaunchAppExtension/LaunchAppExtension-Bridging-Header.h
+    swiftflags: [-swift-version, "5", -Xcc, -DNS_BLOCK_ASSERTIONS=1, -enable-upcoming-feature, MemberImportVisibility]
+    link: [LiveContainerShared]
+    frameworks: []
+    info_plist: LaunchAppExtension/Info.plist
+    entitlements: LaunchAppExtension/LaunchAppExtension.entitlements
+    info:
+      CFBundleDisplayName: LaunchAppExtension

@@ -1,6 +1,6 @@
 // Hand-written equivalent of the code Xcode's intentbuilderc generates from
 // LiveContainerSwiftUI/ViewApp.intentdefinition. intentbuilderc only exists on
-// macOS, so the Makefile (Linux/xtool) build compiles this file instead.
+// macOS, so the idl (Linux) build compiles this file instead.
 // Keep in sync with ViewApp.intentdefinition. Not used by the Xcode build.
 
 import Foundation
