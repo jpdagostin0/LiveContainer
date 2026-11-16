@@ -339,7 +339,6 @@ struct LCAppStoreView: View {
                     }
                 }
 
-                installedAppsSection
 
                 Section {
                     if viewModel.isSearching {
@@ -411,72 +410,6 @@ struct LCAppStoreView: View {
         }
     }
 
-    private var installedAppsSection: some View {
-        Section {
-            if !viewModel.installedImportSupported {
-                Text("Installed-app import is unavailable on this iOS version.")
-                    .foregroundStyle(.secondary)
-            } else if viewModel.isScanningInstalledApps {
-                HStack {
-                    Spacer()
-                    ProgressView()
-                    Spacer()
-                }
-            } else if viewModel.installedApps.isEmpty {
-                Button {
-                    viewModel.scanInstalledApps()
-                } label: {
-                    Label("Scan installed apps", systemImage: "square.and.arrow.down.on.square")
-                }
-                .disabled(viewModel.isBusy)
-            } else {
-                ForEach(viewModel.installedApps) { app in
-                    HStack(spacing: 12) {
-                        Image(systemName: "app.dashed")
-                            .font(.title2)
-                            .frame(width: 38, height: 38)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(app.displayName)
-                                .font(.headline)
-                                .lineLimit(1)
-                            Text(app.bundleIdentifier)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                            if !app.version.isEmpty {
-                                Text(app.version)
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        Spacer()
-                        Button("Import") {
-                            Task { await viewModel.importInstalledApp(app) }
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(viewModel.isBusy)
-                    }
-                    .padding(.vertical, 3)
-                }
-            }
-        } header: {
-            HStack {
-                Text("Installed App Store Apps")
-                Spacer()
-                if viewModel.installedImportSupported && !viewModel.installedApps.isEmpty {
-                    Button {
-                        viewModel.scanInstalledApps()
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                    }
-                    .disabled(viewModel.isBusy || viewModel.isScanningInstalledApps)
-                }
-            }
-        } footer: {
-            Text("Uses worse_query to read an app already installed by the App Store, decrypt it from its original bundle path, then import it into LiveContainer.")
-        }
-    }
-
     private var accountSection: some View {
         Section {
             if let account = viewModel.account {
@@ -500,21 +433,6 @@ struct LCAppStoreView: View {
                     Label("lc.appStore.login".loc, systemImage: "person.crop.circle.badge.checkmark")
                 }
             }
-            Button {
-                Task { await viewModel.testNativeSigning() }
-            } label: {
-                Label("lc.appStore.signer.test".loc, systemImage: "signature")
-            }
-            TextField("Installed app bundle identifier", text: $viewModel.bundleProbeIdentifier)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            Button {
-                Task { await viewModel.probeBundleContainer() }
-            } label: {
-                Label("Probe bundle container", systemImage: "stethoscope")
-            }
-            .disabled(viewModel.bundleProbeIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                      || viewModel.isProbingBundleContainer)
         } footer: {
             Text("lc.appStore.account.notice".loc)
         }
