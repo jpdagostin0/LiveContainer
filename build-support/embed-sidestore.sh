@@ -11,7 +11,9 @@
 #
 # Vars:
 #   LC_IPA        standalone LiveContainer ipa     (default $IDL_IPA, else build/LiveContainer.ipa)
-#   SIDESTORE_IPA SideStore ipa to embed           (default: SideStore/SideStore.ipa, else download nightly)
+#   SIDESTORE_IPA SideStore ipa to embed           (default: SideStore/build/linux/SideStore.ipa
+#                 from SideStore/linux/build.sh, else SideStore/SideStore.ipa,
+#                 else download nightly)
 #   OUT           output ipa                        (default <LC_IPA dir>/LiveContainer+SideStore.ipa)
 #
 # Use your own SideStore *fork* build (with LCProvisioningBridge) via SIDESTORE_IPA
@@ -32,7 +34,9 @@ trap 'rm -rf "$WORK"' EXIT
 
 # --- resolve SideStore ipa ---
 if [ -z "${SIDESTORE_IPA:-}" ]; then
-    if [ -f "$REPO/SideStore/SideStore.ipa" ]; then
+    if [ -f "$REPO/SideStore/build/linux/SideStore.ipa" ]; then
+        SIDESTORE_IPA="$REPO/SideStore/build/linux/SideStore.ipa"
+    elif [ -f "$REPO/SideStore/SideStore.ipa" ]; then
         SIDESTORE_IPA="$REPO/SideStore/SideStore.ipa"
     else
         echo "[*] No SIDESTORE_IPA given; downloading LiveContainer/SideStore nightly"
